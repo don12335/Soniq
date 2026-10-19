@@ -1,0 +1,60 @@
+name: Windows build and release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Confirm release tag matches app version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          if ($env:GITHUB_REF_NAME -ne "v$version") { throw "Tag must be v$version" }
+      - run: pnpm install --frozen-lockfile
+      - name: Build NSIS installer and unpacked app
+        run: pnpm run electron:build:win
+      - name: Check updater files
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          foreach ($file in @("release/Soniq-Setup-$version.exe", "release/Soniq-Setup-$version.exe.blockmap", "release/latest.yml", "release/win-unpacked/soniq.exe")) {
+            if (!(Test-Path -LiteralPath $file)) { throw "Missing $file" }
+          }
+          if (!(Select-String -LiteralPath release/latest.yml -SimpleMatch "Soniq-Setup-$version.exe" -Quiet)) { throw "latest.yml points to the wrong installer" }
+          Compress-Archive -Path release/win-unpacked/* -DestinationPath "release/Soniq-Portable-$version.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: soniq-windows
+          path: |
+            release/Soniq-Setup-*.exe
+            release/Soniq-Setup-*.exe.blockmap
+            release/latest.yml
+            release/Soniq-Portable-*.zip
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/Soniq-Setup-*.exe
+            release/Soniq-Setup-*.exe.blockmap
+            release/latest.yml
+            release/Soniq-Portable-*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true
