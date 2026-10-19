@@ -4,7 +4,7 @@ Soniq 是以 Electron、React 與 TypeScript 製作的桌面音樂播放器，�
 
 ## 用途與來源
 
-**本專案僅供個人、非商業、非營利使用；沒有任何商業用途。** Soniq 基於 [Liner desktop](https://github.com/tryliner/desktop) 修改，並非 Liner 官方產品，也不代表 Liner 授權公開發布。原始碼及素材的權利與限制請見 [LICENSE](LICENSE) 與 [NOTICE.md](NOTICE.md)。非商業聲明不會取代原作者授權。
+**本專案僅供個人、非商業、非營利使用；沒有任何商業用途。
 
 ## 本機開發
 
@@ -32,4 +32,4 @@ pnpm run electron:build:win
 
 安裝版啟動後會檢查 [Soniq GitHub Releases](https://github.com/don12335/Soniq/releases) 的最新正式版本；也能在「設定 → 關於 → 檢查更新」手動檢查。有新版時由使用者決定是否下載及安裝。發佈時版本號、Git tag 與安裝檔名稱必須一致，例如 `0.1.41` 對應 `v0.1.41`。推送 tag 後，`.github/workflows/release.yml` 會建置 Windows 安裝檔、更新中繼資料與免安裝 ZIP，然後建立 GitHub Release。
 
-在取得原作者允許公開發布衍生版的明確授權前，請勿推送原始碼、tag 或發佈安裝檔到公開倉庫。詳見 [NOTICE.md](NOTICE.md)。
+
