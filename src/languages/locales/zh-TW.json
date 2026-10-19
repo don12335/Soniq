@@ -875,9 +875,7 @@
       "report_issue_desc": "在 GitHub 上提交錯誤回報、功能建議或意見回饋。",
       "special_thanks": "特別感謝",
       "special_thanks_desc": "@braccato/core、@kawarp/react、Solar Icons 與 MingCute Icons。",
-      "license_notice": "依據 Liner 原始碼公開與非商業授權條款發布。",
-      "updates_disabled": "此自用版本已停用自動更新。",
-      "based_on_liner": "基於 Liner 開發"
+      "updates_disabled": "此自用版本已停用自動更新。"
     },
     "connection": {
       "title": "連線",

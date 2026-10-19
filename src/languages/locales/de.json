@@ -750,8 +750,7 @@
       "report_issue": "Problem melden",
       "report_issue_desc": "Sende Fehlerberichte, Funktionsvorschläge oder Feedback auf GitHub.",
       "special_thanks": "Besonderer Dank",
-      "special_thanks_desc": "@braccato/core, @kawarp/react, Solar Icons und MingCute Icons.",
-      "license_notice": "Verbreitet unter der Liner Source-Available & Non-Commercial License."
+      "special_thanks_desc": "@braccato/core, @kawarp/react, Solar Icons und MingCute Icons."
     },
     "connection": {
       "title": "Verbindung",

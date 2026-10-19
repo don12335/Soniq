@@ -159,20 +159,17 @@ export function AboutTab({ searchQuery }: { searchQuery?: string }) {
           </Button>
         </div>
 
-        {/* Credit: Soniq is built on the source-available Liner desktop client */}
+        {/* GitHub repository */}
         <div className="flex flex-col items-center gap-[8px] w-full pt-[16px] border-t border-border-primary/30">
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => openUrl("https://github.com/tryliner/desktop")}
+            onClick={() => openUrl("https://github.com/don12335/Soniq")}
             className="!h-[28px] !px-[10px] !text-[12px] gap-[6px]"
           >
             <FaGithub size={13} />
-            {t("settings.about.based_on_liner")}
+            {t("settings.about.github")}
           </Button>
-          <span className="text-text-tertiary text-[11px] leading-snug" style={font}>
-            {t("settings.about.license_notice")}
-          </span>
         </div>
       </div>
     </div>

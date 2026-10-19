@@ -807,8 +807,7 @@
       "report_issue": "Sorun bildir",
       "report_issue_desc": "GitHub'da hata raporu, özellik önerisi veya geri bildirim gönder.",
       "special_thanks": "Özel Teşekkürler",
-      "special_thanks_desc": "@braccato/core, @kawarp/react, Solar Icons ve MingCute Icons.",
-      "license_notice": "Liner Source-Available & Non-Commercial Lisansı altında dağıtılır."
+      "special_thanks_desc": "@braccato/core, @kawarp/react, Solar Icons ve MingCute Icons."
     },
     "connection": {
       "title": "Bağlantı",

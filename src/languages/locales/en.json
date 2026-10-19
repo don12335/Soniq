@@ -875,9 +875,7 @@
       "report_issue_desc": "Submit bug reports, feature suggestions, or feedback on GitHub.",
       "special_thanks": "Special Thanks",
       "special_thanks_desc": "@braccato/core, @kawarp/react, Solar Icons and MingCute Icons.",
-      "license_notice": "Distributed under Liner Source-Available & Non-Commercial License.",
-      "updates_disabled": "Updates are disabled in this local build.",
-      "based_on_liner": "Based on Liner"
+      "updates_disabled": "Updates are disabled in this local build."
     },
     "connection": {
       "title": "Connection",

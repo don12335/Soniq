@@ -811,8 +811,7 @@
       "report_issue": "Zgłoś problem",
       "report_issue_desc": "Wysyłaj zgłoszenia błędów, propozycje i opinie na GitHubie.",
       "special_thanks": "Podziękowania",
-      "special_thanks_desc": "@braccato/core, @kawarp/react, Solar Icons i MingCute Icons.",
-      "license_notice": "Rozpowszechniany na licencji Liner Source-Available & Non-Commercial."
+      "special_thanks_desc": "@braccato/core, @kawarp/react, Solar Icons i MingCute Icons."
     },
     "connection": {
       "title": "Połączenie",

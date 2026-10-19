@@ -900,9 +900,7 @@
       "report_issue_desc": "Надіслати багрепорт або запропонувати покращення на GitHub.",
       "special_thanks": "Подяки",
       "special_thanks_desc": "@braccato/core, @kawarp/react, Solar Icons та MingCute Icons.",
-      "license_notice": "Розповсюджується за ліцензією Liner Source-Available & Non-Commercial.",
-      "updates_disabled": "Оновлення вимкнено в цій локальній збірці.",
-      "based_on_liner": "Створено на основі Liner"
+      "updates_disabled": "Оновлення вимкнено в цій локальній збірці."
     },
     "connection": {
       "title": "З'єднання",
