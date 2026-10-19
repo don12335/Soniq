@@ -956,8 +956,8 @@
     "update_button": "Güncelle",
     "downloading_title": "Güncelleme indiriliyor…",
     "downloaded_title": "Güncelleme indirildi",
-    "downloaded_desc": "{version} sürümünü yüklemek için Soniq'ı yeniden başlat.",
-    "install_button": "Yükle",
+    "downloaded_desc": "{version} güncellemesi hazır. Yeni sürümü kullanmak için Soniq'ı yeniden başlat.",
+    "restart_button": "Şimdi yeniden başlat",
     "error_title": "Güncelleme başarısız"
   },
   "track_search": {

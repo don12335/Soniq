@@ -1229,9 +1229,9 @@ if (!gotTheLock) {
       };
     });
 
-    // updater config: production github releases only, no prereleases or auto-install on close
+    // updater config: production GitHub releases, with silent install after a downloaded update
     autoUpdater.autoDownload = false;
-    autoUpdater.autoInstallOnAppQuit = false;
+    autoUpdater.autoInstallOnAppQuit = true;
     autoUpdater.allowPrerelease = false;
     autoUpdater.allowDowngrade = false;
     let downloadingUpdate = false;
@@ -1303,7 +1303,7 @@ if (!gotTheLock) {
     ipcMain.handle("updater:quit-and-install", () => {
       if (!app.isPackaged) return false;
       setImmediate(() => {
-        autoUpdater.quitAndInstall(false, true);
+        autoUpdater.quitAndInstall(true, true);
       });
       return true;
     });

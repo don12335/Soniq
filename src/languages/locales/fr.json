@@ -958,8 +958,8 @@
     "update_button": "Mettre à jour",
     "downloading_title": "Téléchargement de la mise à jour…",
     "downloaded_title": "Mise à jour téléchargée",
-    "downloaded_desc": "Redémarrez Soniq pour installer la version {version}.",
-    "install_button": "Installer",
+    "downloaded_desc": "La mise à jour {version} est prête. Redémarrez Soniq pour utiliser la nouvelle version.",
+    "restart_button": "Redémarrer",
     "error_title": "Échec de la mise à jour"
   },
   "track_search": {

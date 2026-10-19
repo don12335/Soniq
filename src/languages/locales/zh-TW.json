@@ -1027,8 +1027,8 @@
     "update_button": "更新",
     "downloading_title": "正在下載更新…",
     "downloaded_title": "更新已下載",
-    "downloaded_desc": "重新啟動 Soniq 以安裝 {version} 版。",
-    "install_button": "安裝",
+    "downloaded_desc": "更新 {version} 版已就緒，重新啟動 Soniq 即可使用新版。",
+    "restart_button": "立即重啟",
     "error_title": "更新失敗"
   },
   "track_search": {

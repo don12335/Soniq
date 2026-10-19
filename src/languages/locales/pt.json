@@ -893,8 +893,8 @@
     "update_button": "Atualizar",
     "downloading_title": "Baixando atualização…",
     "downloaded_title": "Atualização baixada",
-    "downloaded_desc": "Reinicie o Soniq para instalar a versão {version}.",
-    "install_button": "Instalar",
+    "downloaded_desc": "A atualização {version} está pronta. Reinicie o Soniq para usar a nova versão.",
+    "restart_button": "Reiniciar agora",
     "error_title": "Falha na atualização"
   },
   "track_search": {

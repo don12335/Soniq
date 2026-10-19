@@ -1,7 +1,7 @@
 {
   "name": "soniq",
   "productName": "Soniq",
-  "version": "0.1.42",
+  "version": "0.1.43",
   "type": "module",
   "private": true,
   "description": "Soniq Music Player",
@@ -73,6 +73,7 @@
     },
     "nsis": {
       "artifactName": "Soniq-Setup-${version}.${ext}",
+      "include": "scripts/installer.nsh",
       "allowToChangeInstallationDirectory": true,
       "oneClick": false
     },

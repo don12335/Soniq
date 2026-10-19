@@ -898,8 +898,8 @@
     "update_button": "Aktualisieren",
     "downloading_title": "Update wird heruntergeladen…",
     "downloaded_title": "Update heruntergeladen",
-    "downloaded_desc": "Starte Soniq neu, um Version {version} zu installieren.",
-    "install_button": "Installieren",
+    "downloaded_desc": "Update {version} ist bereit. Starte Soniq neu, um die neue Version zu verwenden.",
+    "restart_button": "Jetzt neu starten",
     "error_title": "Update fehlgeschlagen"
   },
   "track_search": {

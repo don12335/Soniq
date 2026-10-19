@@ -47,10 +47,10 @@ export default function UpdateToastBridge() {
         id: TOAST_ID,
         description:
           t("updater.downloaded_desc", { version: updateInfo?.version || "" }) ||
-          "Restart Soniq to complete installation.",
+          "Restart Soniq to finish updating.",
         duration: 999999,
         action: {
-          label: t("updater.install_button") || "Install",
+          label: t("updater.restart_button") || "Restart now",
           onClick: () => {
             void installUpdate();
           },

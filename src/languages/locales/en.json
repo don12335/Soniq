@@ -1027,8 +1027,8 @@
     "update_button": "Update",
     "downloading_title": "Downloading update…",
     "downloaded_title": "Update downloaded",
-    "downloaded_desc": "Restart Soniq to install version {version}.",
-    "install_button": "Install",
+    "downloaded_desc": "Update {version} is ready. Restart Soniq to use the new version.",
+    "restart_button": "Restart now",
     "error_title": "Update failed"
   },
   "track_search": {

@@ -1004,8 +1004,8 @@
     "update_button": "Actualizar",
     "downloading_title": "Descargando actualización…",
     "downloaded_title": "Actualización descargada",
-    "downloaded_desc": "Reinicia Soniq para instalar la versión {version}.",
-    "install_button": "Instalar",
+    "downloaded_desc": "La actualización {version} está lista. Reinicia Soniq para usar la nueva versión.",
+    "restart_button": "Reiniciar ahora",
     "error_title": "Error en la actualización"
   },
   "track_search": {

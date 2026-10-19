@@ -1052,8 +1052,8 @@
     "update_button": "Обновить",
     "downloading_title": "Загрузка обновления…",
     "downloaded_title": "Обновление загружено",
-    "downloaded_desc": "Перезапустите Soniq для установки версии {version}.",
-    "install_button": "Установить",
+    "downloaded_desc": "Обновление {version} готово. Перезапустите Soniq, чтобы использовать новую версию.",
+    "restart_button": "Перезапустить",
     "error_title": "Ошибка обновления"
   },
   "track_search": {

@@ -956,8 +956,8 @@
     "update_button": "Aggiorna",
     "downloading_title": "Download dell'aggiornamento…",
     "downloaded_title": "Aggiornamento scaricato",
-    "downloaded_desc": "Riavvia Soniq per installare la versione {version}.",
-    "install_button": "Installa",
+    "downloaded_desc": "L'aggiornamento {version} è pronto. Riavvia Soniq per usare la nuova versione.",
+    "restart_button": "Riavvia ora",
     "error_title": "Aggiornamento non riuscito"
   },
   "track_search": {
