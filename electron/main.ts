@@ -1229,7 +1229,7 @@ if (!gotTheLock) {
       };
     });
 
-    // updater config: production GitHub releases, with silent install after a downloaded update
+    // updater config: production GitHub releases, progress-only install after a downloaded update
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
     autoUpdater.allowPrerelease = false;
@@ -1303,7 +1303,8 @@ if (!gotTheLock) {
     ipcMain.handle("updater:quit-and-install", () => {
       if (!app.isPackaged) return false;
       setImmediate(() => {
-        autoUpdater.quitAndInstall(true, true);
+        // not silent: installer shows only its progress page on updates (see scripts/installer.nsh)
+        autoUpdater.quitAndInstall(false, true);
       });
       return true;
     });

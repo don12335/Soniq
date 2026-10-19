@@ -1,7 +1,7 @@
 {
   "name": "soniq",
   "productName": "Soniq",
-  "version": "0.1.43",
+  "version": "0.1.44",
   "type": "module",
   "private": true,
   "description": "Soniq Music Player",
