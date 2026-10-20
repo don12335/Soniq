@@ -1,7 +1,7 @@
 {
   "name": "soniq",
   "productName": "Soniq",
-  "version": "0.1.44",
+  "version": "0.1.45",
   "type": "module",
   "private": true,
   "description": "Soniq Music Player",
@@ -65,7 +65,9 @@
     "win": {
       "executableName": "soniq",
       "icon": "build/icon.ico",
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "publish": {
       "provider": "github",
@@ -104,8 +106,10 @@
     "@braccato/parsers": "^0.2.1",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
     "@capacitor/haptics": "^8.0.2",
     "@capacitor/keyboard": "^8.0.6",
+    "@capacitor/share": "^8.0.3",
     "@capacitor/status-bar": "^8.0.4",
     "@mingcute/react": "^1.4.1",
     "@solar-icons/react": "^1.1.1",

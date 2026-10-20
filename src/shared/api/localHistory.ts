@@ -10,7 +10,7 @@ import type {
 
 const STORAGE_KEY = "liner_local_history_v1";
 const HISTORY_CHANGED_EVENT = "soniq:local-history-changed";
-const MAX_ENTRIES = 500;
+const MAX_ENTRIES = 5000;
 // short previews and quick skips are noise, not listening
 const MIN_PLAYED_MS = 10_000;
 

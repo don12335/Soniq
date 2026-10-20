@@ -5,6 +5,7 @@ import type { AnimationItem } from "lottie-web";
 import { FolderOpenLine, CheckLine } from "@mingcute/react";
 import { CheckCircle } from "@solar-icons/react";
 import Button from "@/shared/ui/Button";
+import PortableBackupSection from "./PortableBackupSection";
 import { useToast } from "@/shared/ui";
 import { useTranslation } from "@/languages";
 import {
@@ -561,6 +562,8 @@ export function StorageTab({ searchQuery: _searchQuery }: { searchQuery?: string
           </div>
         </div>
       </div>
+
+      <PortableBackupSection />
 
       <div className="mt-auto flex items-center gap-[8px] pt-4">
         <Button

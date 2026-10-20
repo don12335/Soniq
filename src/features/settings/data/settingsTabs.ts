@@ -78,6 +78,7 @@ export const SETTING_ITEMS: { tabId: TabId; titleKey: string; descKey?: string }
   // Storage
   { tabId: "Storage", titleKey: "settings.storage.title", descKey: "settings.storage.description" },
   { tabId: "Storage", titleKey: "settings.storage.usage_title" },
+  { tabId: "Storage", titleKey: "settings.storage.backup_title", descKey: "settings.storage.backup_description" },
   { tabId: "Storage", titleKey: "settings.storage.open_folder", descKey: "settings.storage.open_folder_description" },
 
   // About
