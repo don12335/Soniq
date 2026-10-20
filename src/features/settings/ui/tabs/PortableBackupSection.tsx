@@ -90,10 +90,7 @@ export default function PortableBackupSection() {
   return (
     <section className="rounded-2xl border border-border-primary/60 bg-bg-panel p-[16px] dark:border-transparent dark:bg-white/[0.035]">
       <h3 className="m-0 text-[16px] font-semibold text-text-primary">{t("settings.storage.backup_title")}</h3>
-      <p className="mb-[14px] mt-[5px] text-[13px] leading-relaxed text-text-secondary">
-        {t("settings.storage.backup_description")}
-      </p>
-      <div className="flex flex-wrap gap-[8px]">
+      <div className="mt-3 flex flex-wrap gap-[8px]">
         <Button type="button" variant="secondary" disabled={busy} onClick={() => void exportBackup()}>
           {t("settings.storage.backup_export")}
         </Button>
@@ -101,6 +98,9 @@ export default function PortableBackupSection() {
           {t("settings.storage.backup_import")}
         </Button>
       </div>
+      <p className="mb-0 mt-3 text-[13px] leading-relaxed text-text-secondary">
+        {t("settings.storage.backup_description")}
+      </p>
       <input
         ref={inputRef} type="file" accept=".json,application/json" className="hidden"
         onChange={(event) => {
