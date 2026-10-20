@@ -264,6 +264,7 @@ img {
 :root {
   --safe-top: max(env(safe-area-inset-top), var(--dev-safe-top, 0px));
   --safe-bottom: max(env(safe-area-inset-bottom), var(--dev-safe-bottom, 0px));
+  --keyboard-h: 0px;
   --m-tab-h: 56px;
   --m-mini-h: 64px;
 }

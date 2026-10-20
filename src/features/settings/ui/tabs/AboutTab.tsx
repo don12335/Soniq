@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { getCapabilities, isIOS } from "@/shared/platform";
+import { getCapabilities, getPlatform, isIOS, isNative } from "@/shared/platform";
+import { getRecentLogs } from "@/shared/utils/logger";
 import { FaGithub } from "react-icons/fa";
 import { Refresh1Line, CheckLine } from "@mingcute/react";
 import Button from "@/shared/ui/Button";
@@ -52,6 +53,23 @@ export function AboutTab({ searchQuery }: { searchQuery?: string }) {
 
   const openUrl = (url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  // phones have no devtools console: copy recent logs so they can be pasted into a bug report
+  const handleCopyDiagnostics = async () => {
+    const report = [
+      `Soniq ${appVersion} · ${getPlatform()}`,
+      navigator.userAgent,
+      new Date().toISOString(),
+      "",
+      ...getRecentLogs(),
+    ].join("\n");
+    try {
+      await navigator.clipboard.writeText(report);
+      toast(t("settings.about.diagnostics_copied"), "success");
+    } catch {
+      toast(t("settings.about.copy_diagnostics"), "info");
+    }
   };
 
   const handleCheckUpdates = async () => {
@@ -163,6 +181,19 @@ export function AboutTab({ searchQuery }: { searchQuery?: string }) {
               : t("settings.about.check_updates")}
           </Button>
         </div>
+
+        {isNative() && (
+          <div className="w-full flex items-center justify-center mb-[20px] -mt-[8px]">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleCopyDiagnostics}
+              className="!h-[32px] !px-[16px] !text-[12.5px] !rounded-lg"
+            >
+              {t("settings.about.copy_diagnostics")}
+            </Button>
+          </div>
+        )}
 
         {/* GitHub repository */}
         <div className="flex flex-col items-center gap-[8px] w-full pt-[16px] border-t border-border-primary/30">

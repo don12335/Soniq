@@ -601,13 +601,16 @@ export class PlayerRuntime {
         return;
       }
 
-      const stream = await resolvePlaybackStream(track, controller.signal);
+      const resolved = await resolvePlaybackStream(track, controller.signal);
       this.ttfbMs = Math.round(performance.now() - this.loadStartTime);
 
       if (epoch !== this.loadEpoch || controller.signal.aborted) {
         log("yellow", "playback", `superseded before stream ready (${track.title})`);
         return;
       }
+
+      const stream = await this.toPlayableStream(track, resolved, controller.signal);
+      if (epoch !== this.loadEpoch || controller.signal.aborted) return;
 
       const streamCodec = stream.codec;
       const streamBitrate = stream.bitrate;
@@ -662,7 +665,8 @@ export class PlayerRuntime {
       if (epoch === this.loadEpoch) {
         usePlayerStore.getState().setStatus("playing");
         this.fadeVolume(usePlayerStore.getState().volume, 180);
-        this.cacheAudioInBackground(track, stream, bgCacheController.signal);
+        // toPlayableStream already cached a natively downloaded track
+        if (stream === resolved) this.cacheAudioInBackground(track, stream, bgCacheController.signal);
       }
       log(
         "green",
@@ -830,6 +834,24 @@ export class PlayerRuntime {
     } catch {
       // Ignore seek error if media not yet ready
     }
+  }
+
+  // iOS can't stream googlevideo URLs in <audio>: download the whole file through native
+  // networking first, cache it, and play it from a blob URL
+  private async toPlayableStream(track: Track, stream: PlaybackStream, signal: AbortSignal): Promise<PlaybackStream> {
+    if (stream.blob || getCapabilities().directMediaUrls) return stream;
+    const blob = await this.downloadAudioBlob(stream, signal);
+    if (signal.aborted) return stream;
+    if (!blob) throw new Error("Audio download failed");
+    void linerDb.putAudio(track.id, blob, blob.type).then(() => linerDb.putTrack(track)).catch(() => {});
+    return {
+      mimeType: stream.mimeType,
+      codec: stream.codec,
+      bitrate: stream.bitrate,
+      contentLength: blob.size,
+      blob,
+      expiresAtMs: null,
+    };
   }
 
   private async downloadAudioBlob(stream: PlaybackStream, signal: AbortSignal): Promise<Blob | null> {

@@ -21,12 +21,22 @@ export async function initNativeChrome(): Promise<void> {
     applyWindowVisibility(isActive);
   });
 
+  // The web view isn't resized for the keyboard (Keyboard.resize "none"), so bottom-anchored
+  // sheets lift themselves by --keyboard-h. iOS also scrolls the page to reveal the focused
+  // field and doesn't scroll it back, which leaves the fixed layout shifted after the keyboard closes.
   try {
-    void Keyboard.addListener("keyboardWillShow", () => {
+    void Keyboard.addListener("keyboardWillShow", ({ keyboardHeight }) => {
       root.dataset.keyboard = "open";
+      root.style.setProperty("--keyboard-h", `${keyboardHeight}px`);
     });
     void Keyboard.addListener("keyboardWillHide", () => {
       delete root.dataset.keyboard;
+      root.style.setProperty("--keyboard-h", "0px");
+    });
+    void Keyboard.addListener("keyboardDidHide", () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     });
   } catch {
     // keyboard plugin unavailable

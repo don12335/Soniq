@@ -129,7 +129,7 @@ export default function Dialog({
             } ${className || "pt-[16px]"}`}
             style={
               mobile
-                ? { minHeight, paddingBottom: "var(--safe-bottom)" }
+                ? { minHeight, paddingBottom: "max(var(--safe-bottom), var(--keyboard-h, 0px))" }
                 : { maxWidth, minHeight, ...(maxHeight ? { maxHeight } : {}) }
             }
           >

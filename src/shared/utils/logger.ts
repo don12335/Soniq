@@ -21,12 +21,33 @@ const COLOR_MAP: Record<LogColor, { bg: string; text: string; ansi: string }> = 
   black: { bg: "#18181b", text: "#ffffff", ansi: "\x1b[40;37m" },
 };
 
+// recent lines kept for "copy diagnostics" on phones, where there is no devtools console
+const RECENT_LIMIT = 300;
+const recentLogs: string[] = [];
+
+function describeArg(arg: unknown): string {
+  if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+  if (typeof arg === "string") return arg;
+  try {
+    return JSON.stringify(arg)?.slice(0, 300) ?? String(arg);
+  } catch {
+    return String(arg);
+  }
+}
+
+export function getRecentLogs(): string[] {
+  return [...recentLogs];
+}
+
 export function log(
   color: LogColor,
   tag: string,
   message: string,
   ...args: unknown[]
 ): void {
+  const line = [new Date().toISOString().slice(11, 23), tag, message, ...args.map(describeArg)].join(" ");
+  recentLogs.push(line);
+  if (recentLogs.length > RECENT_LIMIT) recentLogs.shift();
   if (typeof console === "undefined") return;
   const config = COLOR_MAP[color] ?? COLOR_MAP.blue;
   if (typeof window !== "undefined") {

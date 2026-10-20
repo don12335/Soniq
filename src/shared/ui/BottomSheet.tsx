@@ -63,7 +63,7 @@ export default function BottomSheet({ open, onClose, children, title, height, cl
             role="dialog"
             aria-modal="true"
             className={`absolute inset-x-0 bottom-0 flex flex-col rounded-t-[20px] bg-bg-elevated text-text-primary max-h-[92dvh] ${className}`}
-            style={{ height, paddingBottom: "var(--safe-bottom)" }}
+            style={{ height, paddingBottom: "max(var(--safe-bottom), var(--keyboard-h, 0px))" }}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}

@@ -27,7 +27,7 @@ export default function MobileTabBar() {
     <nav
       className="absolute inset-x-0 bottom-0 z-[40] flex items-stretch border-t border-border-primary/40 bg-bg-primary/85 backdrop-blur-xl in-data-[keyboard=open]:hidden"
       style={{ height: "calc(var(--m-tab-h) + var(--safe-bottom))", paddingBottom: "var(--safe-bottom)" }}
-      aria-label={t("common.navigation") || "Navigation"}
+      aria-label="Tab bar"
     >
       {sidebarNavItems.map(({ id, label, Icon }) => {
         const isActive = id === active;

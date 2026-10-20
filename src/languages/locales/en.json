@@ -850,6 +850,8 @@
       "tagline": "Modern desktop music streaming player with syllable-synced lyrics",
       "updates_title": "Updates & Build",
       "check_updates": "Check for updates",
+      "copy_diagnostics": "Copy diagnostics",
+      "diagnostics_copied": "Diagnostics copied",
       "checking_updates": "Checking…",
       "up_to_date": "Up to date",
       "latest_version_toast": "You are running the latest version (v{version})",

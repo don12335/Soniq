@@ -850,6 +850,8 @@
       "tagline": "具備逐字同步歌詞的現代桌面音樂串流播放器",
       "updates_title": "更新與版本",
       "check_updates": "檢查更新",
+      "copy_diagnostics": "複製診斷資訊",
+      "diagnostics_copied": "已複製診斷資訊",
       "checking_updates": "檢查中…",
       "up_to_date": "已是最新版本",
       "latest_version_toast": "你正在使用最新版本（v{version}）",

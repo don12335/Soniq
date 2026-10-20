@@ -16,6 +16,8 @@ export interface Capabilities {
   // pitch/reverb route audio through WebAudio, which iOS suspends in the background
   audioEffects: boolean;
   crossOriginMedia: boolean;
+  // false: <audio> can't open googlevideo URLs (iOS), so tracks are downloaded natively and played from a blob
+  directMediaUrls: boolean;
   preferredCodec: "aac" | undefined;
 }
 
@@ -35,6 +37,7 @@ function compute(): Capabilities {
     volumeControl: !ios,
     audioEffects: !isNative(),
     crossOriginMedia: !isNative(),
+    directMediaUrls: !isNative(),
     preferredCodec: ios ? "aac" : undefined,
   };
 }
