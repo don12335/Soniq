@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isNative } from "@/shared/platform";
 
 export function CoverSwRegistrar() {
   useEffect(() => {
@@ -6,11 +7,12 @@ export function CoverSwRegistrar() {
       return;
     }
 
+    // service workers don't run on Electron's file: pages or Capacitor's capacitor:// scheme
     const isElectron =
       window.location.protocol === "file:" ||
       typeof (window as any).linerElectron !== "undefined";
 
-    if (isElectron) {
+    if (isElectron || isNative()) {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         for (const reg of registrations) {
           void reg.unregister();

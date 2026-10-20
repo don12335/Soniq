@@ -11,14 +11,19 @@ export default defineConfig(({ command, mode }) => {
     if (devSigningSecret) process.env.LINER_DEV_SIGNING_SECRET = devSigningSecret;
   }
 
+  // `vite build --mode ios` builds only the renderer for the Capacitor shell (Soniq-iOS repo)
+  const target = mode === "ios" || mode === "android" ? mode : "desktop";
+  const isDesktop = target === "desktop";
+
   return {
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    "import.meta.env.VITE_TARGET": JSON.stringify(target),
   },
   plugins: [
     react(),
     tailwindcss(),
-    electron({
+    isDesktop && electron({
       main: {
         entry: "electron/main.ts",
       },
@@ -51,8 +56,10 @@ export default defineConfig(({ command, mode }) => {
     strictPort: true,
   },
   build: {
-    outDir: "dist",
+    outDir: isDesktop ? "dist" : "dist-mobile",
     emptyOutDir: true,
+    // Tailwind v4 needs Safari 16.4+ (iOS 16.4)
+    ...(isDesktop ? {} : { target: ["es2022", "safari16.4"] }),
   },
   };
 });

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { WarningFill } from "@mingcute/react";
 import { useTranslation } from "@/languages";
+import { isNative } from "@/shared/platform";
 
 const SKIP_KEY = "liner:env-warning-skipped";
 
@@ -16,7 +17,7 @@ export default function EnvironmentWarning() {
     }
   });
 
-  if (typeof window !== "undefined" && window.linerElectron) return null;
+  if (typeof window !== "undefined" && (window.linerElectron || isNative())) return null;
   if (skipped) return null;
 
   const skip = () => {

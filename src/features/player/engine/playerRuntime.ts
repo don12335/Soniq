@@ -6,6 +6,7 @@ import { linerDb, audioCache } from "@/shared/storage";
 import { isStandaloneAudioFile } from "@/shared/storage/audioFormat";
 import type { Track } from "@/shared/types";
 import { pitchShifter } from "./pitchShifter";
+import { getCapabilities } from "@/shared/platform";
 import { resolvePlaybackStream, type PlaybackStream } from "./streamResolver";
 import { downloadAudioBytes } from "@/shared/media/innertube";
 
@@ -36,7 +37,8 @@ export class PlayerRuntime {
     if (!audio) {
       audio = new Audio();
       audio.id = "liner-audio";
-      audio.crossOrigin = "anonymous";
+      // native WebViews would need CORS headers from googlevideo, which it doesn't send for the app origin
+      if (getCapabilities().crossOriginMedia) audio.crossOrigin = "anonymous";
       audio.preload = "auto";
       if (typeof document !== "undefined") {
         document.body.appendChild(audio);
@@ -329,6 +331,8 @@ export class PlayerRuntime {
       const reverbLevel = store.reverbLevel ?? 0.35;
       const needsEffects = isReverbEnabled || (!isPitchLinked && Math.abs(pitchSemitones) >= 0.05);
       if (!needsEffects && !pitchShifter.isAttached()) return;
+      // WebAudio is suspended in the background on iOS, which would stop playback
+      if (!getCapabilities().audioEffects) return;
       pitchShifter.attach(this.audio);
       pitchShifter.update({
         pitchSemitones,

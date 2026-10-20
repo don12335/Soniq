@@ -14,6 +14,7 @@ import { AppRoutes } from "./routes";
 import DeeplinkHandler from "./DeeplinkHandler";
 import EnvironmentWarning from "./EnvironmentWarning";
 import { ConnectivityWall } from "@/features/connectivity";
+import { isElectron } from "@/shared/platform";
 import "./globals.css";
 import "./soniq-liquid.css";
 
@@ -42,6 +43,24 @@ function DiscordSync() {
   return null;
 }
 
+function WindowDragSync() {
+  useWindowDrag();
+  return null;
+}
+
+// Window, Touch Bar, overlay and Discord sync only exist in the Electron shell.
+function DesktopShellSync() {
+  return (
+    <>
+      <WindowDragSync />
+      <AppIconSync />
+      <TouchBarSync />
+      <OverlaySync />
+      <DiscordSync />
+    </>
+  );
+}
+
 export default function App() {
   const isOverlay = window.location.hash.startsWith("#/overlay");
 
@@ -63,8 +82,6 @@ export default function App() {
     );
   }
 
-  useWindowDrag();
-
   return (
     <HashRouter>
       <CoverSwRegistrar />
@@ -76,10 +93,7 @@ export default function App() {
       >
         <GlobalTooltip />
         <ThemeSync />
-        <AppIconSync />
-        <TouchBarSync />
-        <OverlaySync />
-        <DiscordSync />
+        {isElectron() && <DesktopShellSync />}
         <AppleEmojiProvider>
           <I18nProvider>
             <ToastProvider>

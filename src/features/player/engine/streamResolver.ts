@@ -1,4 +1,5 @@
 import { resolveDirectAudioStream, toVideoId } from "@/shared/media/innertube";
+import { getCapabilities } from "@/shared/platform";
 import { resolveSoundCloudStream, toSoundCloudTrackId } from "@/shared/media/soundcloud";
 import { isAbortError } from "@/shared/utils/abort";
 import { log } from "@/shared/utils/logger";
@@ -12,11 +13,17 @@ import { findYoutubeStandIn } from "./youtubeStandIn";
 
 export type { BufferedPlaybackStream, PlayableTrack, PlaybackStream, UrlPlaybackStream } from "./playbackStream";
 
+// iOS can't decode Opus/WebM in <audio>, so it asks for AAC (itag 140)
+async function resolveYoutube(videoId: string, signal?: AbortSignal): Promise<PlaybackStream> {
+  const { preferredCodec } = getCapabilities();
+  return fromInnertubeStream(await resolveDirectAudioStream(videoId, { signal, preferredCodec }));
+}
+
 async function resolveYoutubeStandIn(track: PlayableTrack, signal?: AbortSignal): Promise<PlaybackStream> {
   const videoId = await findYoutubeStandIn(track, signal);
   if (!videoId) throw new Error("No matching YouTube track found");
   log("cyan", "playback", `playing youtube stand-in ${videoId} for "${track.title}"`);
-  return fromInnertubeStream(await resolveDirectAudioStream(videoId, { signal }));
+  return resolveYoutube(videoId, signal);
 }
 
 async function resolveSoundCloud(track: PlayableTrack, signal?: AbortSignal): Promise<PlaybackStream> {
@@ -36,6 +43,6 @@ async function resolveSoundCloud(track: PlayableTrack, signal?: AbortSignal): Pr
 
 export async function resolvePlaybackStream(track: PlayableTrack, signal?: AbortSignal): Promise<PlaybackStream> {
   if (toSoundCloudTrackId(track.id)) return resolveSoundCloud(track, signal);
-  if (toVideoId(track.id)) return fromInnertubeStream(await resolveDirectAudioStream(track.id, { signal }));
+  if (toVideoId(track.id)) return resolveYoutube(track.id, signal);
   return resolveYoutubeStandIn(track, signal);
 }

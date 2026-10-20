@@ -2,6 +2,7 @@ import { InnertubeError, postInnertube, type InnertubeProfile } from "./innertub
 import { PLAYBACK_PROFILES } from "./playbackProfiles";
 import { resetClientVisitorData } from "@/shared/api/visitorSession";
 import { log } from "@/shared/utils/logger";
+import { getCapabilities } from "@/shared/platform";
 import { resetWebRemixSession, resolveWebRemixAudioStream } from "./webRemixAudio";
 import {
   extractAudioFormats,
@@ -116,7 +117,10 @@ export async function resolveDirectAudioStream(
   const videoId = toVideoId(trackId);
   if (!videoId) throw new InnertubeError(`Track ${trackId} is not a YouTube video.`, 400);
   const failures: string[] = [];
-  if (!options.profiles && Date.now() >= webRemixRetryAt) {
+  // WEB_REMIX needs a PoToken, which native shells can't mint, so they go straight to the fallbacks
+  if (!getCapabilities().poToken) {
+    failures.push("WEB_REMIX unavailable: no PoToken on this platform");
+  } else if (!options.profiles && Date.now() >= webRemixRetryAt) {
     const stream = await resolveViaWebRemix(videoId, options, failures);
     if (stream) return stream;
   } else if (!options.profiles) {
