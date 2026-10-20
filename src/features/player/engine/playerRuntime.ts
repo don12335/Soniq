@@ -13,6 +13,9 @@ import { downloadAudioBytes } from "@/shared/media/innertube";
 export class PlayerRuntime {
   private audio: HTMLAudioElement;
   private currentTrackId: string | null = null;
+  private currentTrackDurationMs = 0;
+  private completedCurrentTrack = false;
+  private loggedDurationMismatch = false;
   private loadEpoch = 0;
   private loadAbortController: AbortController | null = null;
   private isResetting = false;
@@ -171,23 +174,41 @@ export class PlayerRuntime {
     audioEl.addEventListener("timeupdate", () => {
       if (this.isResetting || audioEl !== this.audio) return;
       if (!this.currentTrackId) return;
-      if (usePlayerStore.getState().status === "loading") return;
       if (Number.isNaN(audioEl.currentTime)) return;
 
       const posMs = Math.round(audioEl.currentTime * 1000);
-      usePlayerStore.getState().setPosition(posMs);
+      const correctedDurationMs = this.iosCorrectedDurationMs(audioEl);
+      if (correctedDurationMs !== null && posMs >= correctedDurationMs + 750) {
+        this.finishTrack(audioEl, "iOS catalog duration reached");
+        return;
+      }
+      if (usePlayerStore.getState().status === "loading") return;
+      usePlayerStore.getState().setPosition(correctedDurationMs === null ? posMs : Math.min(posMs, correctedDurationMs));
     });
 
     audioEl.addEventListener("durationchange", () => {
       if (this.isResetting || audioEl !== this.audio) return;
       if (!this.currentTrackId) return;
-      if (Number.isNaN(audioEl.duration) || audioEl.duration <= 0) return;
-
+      const correctedDurationMs = this.iosCorrectedDurationMs(audioEl);
+      if (correctedDurationMs !== null) {
+        if (!this.loggedDurationMismatch) {
+          log("yellow", "audio", `iOS duration mismatch: media ${Math.round(audioEl.duration)}s, catalog ${Math.round(correctedDurationMs / 1000)}s`);
+          this.loggedDurationMismatch = true;
+        }
+        usePlayerStore.getState().setDuration(correctedDurationMs);
+        return;
+      }
+      if (!Number.isFinite(audioEl.duration) || audioEl.duration <= 0) return;
       usePlayerStore.getState().setDuration(Math.round(audioEl.duration * 1000));
     });
 
     audioEl.addEventListener("waiting", () => {
       if (this.isResetting || audioEl !== this.audio) return;
+      const correctedDurationMs = this.iosCorrectedDurationMs(audioEl);
+      if (correctedDurationMs !== null && audioEl.currentTime * 1000 >= correctedDurationMs - 500) {
+        this.finishTrack(audioEl, "iOS stream stopped at catalog end");
+        return;
+      }
       log("yellow", "audio", "buffering (waiting)");
       this.stallStartTime = performance.now();
       if (usePlayerStore.getState().status === "playing") {
@@ -200,13 +221,10 @@ export class PlayerRuntime {
       if (!this.currentTrackId) return;
 
       // Ensure the track truly finished playing (not an empty media load or teardown artefact)
-      const duration = audioEl.duration;
-      const currentTime = audioEl.currentTime;
-      if (duration > 0 && currentTime >= Math.max(0, duration - 1.5)) {
-        log("cyan", "audio", "ended — skipping to next");
-        this.onEnded?.();
-        const state = usePlayerStore.getState();
-        state.dispatch({ type: "SKIP_NEXT", isAutoEnd: true });
+      const durationMs = this.iosCorrectedDurationMs(audioEl) ?? audioEl.duration * 1000;
+      const positionMs = audioEl.currentTime * 1000;
+      if (Number.isFinite(durationMs) && durationMs > 0 && positionMs >= Math.max(0, durationMs - 1500)) {
+        this.finishTrack(audioEl, "ended");
       }
     });
 
@@ -288,6 +306,25 @@ export class PlayerRuntime {
       usePlayerStore.getState().setStatus("error", message);
       this.onError?.({ trackId: this.currentTrackId, message });
     });
+  }
+
+  private iosCorrectedDurationMs(audioEl: HTMLAudioElement): number | null {
+    if (!getCapabilities().mediaProxy || this.currentTrackDurationMs <= 0) return null;
+    const mediaDurationMs = audioEl.duration * 1000;
+    if (Number.isNaN(mediaDurationMs) || mediaDurationMs <= 0) return null;
+    const excessMs = Math.max(10_000, this.currentTrackDurationMs * 0.2);
+    return !Number.isFinite(mediaDurationMs) || mediaDurationMs > this.currentTrackDurationMs + excessMs
+      ? this.currentTrackDurationMs
+      : null;
+  }
+
+  private finishTrack(audioEl: HTMLAudioElement, reason: string): void {
+    if (this.completedCurrentTrack) return;
+    this.completedCurrentTrack = true;
+    log("cyan", "audio", `${reason} — skipping to next`);
+    if (!audioEl.paused) audioEl.pause();
+    this.onEnded?.();
+    usePlayerStore.getState().dispatch({ type: "SKIP_NEXT", isAutoEnd: true });
   }
 
   public getCurrentTrackId(): string | null {
@@ -414,6 +451,8 @@ export class PlayerRuntime {
     this.backgroundCacheAbortController?.abort();
     this.backgroundCacheAbortController = null;
     this.currentTrackId = null;
+    this.currentTrackDurationMs = 0;
+    this.completedCurrentTrack = false;
     this.currentSessionExpiresAt = null;
     this.recoveryAttempts = 0;
     this.safeResetAudioElement();
@@ -520,6 +559,9 @@ export class PlayerRuntime {
       store.resetSpeedAndPitch();
     }
     this.currentTrackId = track.id;
+    this.currentTrackDurationMs = track.durationMs ?? 0;
+    this.completedCurrentTrack = false;
+    this.loggedDurationMismatch = false;
     this.loadStartTime = performance.now();
     this.updateMediaSessionMetadata(track);
 

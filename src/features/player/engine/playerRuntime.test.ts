@@ -7,6 +7,7 @@ vi.mock("./streamResolver", () => ({ resolvePlaybackStream: mocks.resolvePlaybac
 import { playerRuntime, PlayerRuntime } from "./playerRuntime";
 import { usePlayerStore } from "../store/playerStore";
 import { linerDb } from "@/shared/storage";
+import { resetCapabilitiesForTests } from "@/shared/platform/capabilities";
 import type { Track } from "@/shared/types";
 
 const urlStream = {
@@ -104,6 +105,54 @@ describe("PlayerRuntime — status must always match the real audio state", () =
     await Promise.resolve();
 
     expect(usePlayerStore.getState().status).toBe("paused");
+  });
+});
+
+describe("PlayerRuntime iOS media duration", () => {
+  it("uses the song length and advances once when WebKit reports twice the playable duration", () => {
+    const iosTrack = { ...track, durationMs: 189_000 };
+    Object.defineProperty(window, "Capacitor", {
+      configurable: true,
+      value: { isNativePlatform: () => true, getPlatform: () => "ios" },
+    });
+    resetCapabilitiesForTests();
+
+    const runtime = playerRuntime as unknown as {
+      audio: HTMLAudioElement;
+      currentTrackId: string | null;
+      currentTrackDurationMs: number;
+      completedCurrentTrack: boolean;
+      onEnded?: () => void;
+    };
+    const audio = runtime.audio;
+    const dispatch = vi.fn();
+    const onEnded = vi.fn();
+    runtime.currentTrackId = iosTrack.id;
+    runtime.currentTrackDurationMs = iosTrack.durationMs;
+    runtime.completedCurrentTrack = false;
+    runtime.onEnded = onEnded;
+    usePlayerStore.setState({ status: "playing", currentTrack: iosTrack, durationMs: iosTrack.durationMs, dispatch });
+    Object.defineProperty(audio, "duration", { configurable: true, value: 378 });
+    Object.defineProperty(audio, "currentTime", { configurable: true, value: 189.9 });
+    Object.defineProperty(audio, "paused", { configurable: true, value: false });
+    vi.spyOn(audio, "pause").mockImplementation(() => {});
+
+    try {
+      audio.dispatchEvent(new Event("durationchange"));
+      expect(usePlayerStore.getState().durationMs).toBe(189_000);
+      audio.dispatchEvent(new Event("timeupdate"));
+      audio.dispatchEvent(new Event("timeupdate"));
+      expect(dispatch).toHaveBeenCalledExactlyOnceWith({ type: "SKIP_NEXT", isAutoEnd: true });
+      expect(onEnded).toHaveBeenCalledTimes(1);
+    } finally {
+      runtime.currentTrackId = null;
+      runtime.currentTrackDurationMs = 0;
+      runtime.onEnded = undefined;
+      for (const key of ["duration", "currentTime", "paused"]) Reflect.deleteProperty(audio, key);
+      Reflect.deleteProperty(window, "Capacitor");
+      resetCapabilitiesForTests();
+      vi.restoreAllMocks();
+    }
   });
 });
 
