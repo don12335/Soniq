@@ -1,4 +1,5 @@
 import { parseVisitorData } from "./visitorData";
+import { log } from "@/shared/utils/logger";
 
 /**
  * Client-side YouTube visitorData session manager.
@@ -70,6 +71,7 @@ export async function getClientVisitorData(): Promise<string> {
       };
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedSession)); } catch { /* optional cache */ }
 
+      log("green", "visitor", `ready: ${visitorData.slice(0, 16)}...`);
       console.info(
         `%c[VisitorSession]%c Ready: ${visitorData.slice(0, 16)}... (valid 5.5h)`,
         "color: #10b981; font-weight: bold;",
@@ -79,6 +81,7 @@ export async function getClientVisitorData(): Promise<string> {
       return visitorData;
     } catch (err) {
       console.warn("[VisitorSession] Failed to fetch fresh visitorData:", err);
+      log("red", "visitor", `failed: ${err instanceof Error ? err.message : String(err)}`);
       // Fallback: if cached exists even if slightly expired, keep it
       if (cachedSession?.visitorData) {
         return cachedSession.visitorData;

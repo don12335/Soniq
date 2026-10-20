@@ -1,19 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
-import type { HttpResponse } from "@capacitor/core";
 
-vi.mock("@capacitor/core", () => ({ CapacitorHttp: { request: vi.fn() } }));
+vi.mock("@capacitor/core", () => ({ registerPlugin: () => ({ request: vi.fn() }) }));
 
-import { createNativeFetch, shouldUseNative } from "./nativeFetch";
+import { createNativeFetch, shouldUseNative, type NativeHttpRequest, type NativeHttpResponse } from "./nativeFetch";
 
 function base64(text: string): string {
-  return btoa(text);
+  return btoa(unescape(encodeURIComponent(text)));
 }
 
-function setup(response: Partial<HttpResponse> | Error) {
+function setup(response: Partial<NativeHttpResponse> | Error) {
   const webFetch = vi.fn(async () => new Response("web"));
-  const nativeRequest = vi.fn(async (_options: Record<string, any>) => {
+  const nativeRequest = vi.fn(async (_options: NativeHttpRequest) => {
     if (response instanceof Error) throw response;
-    return { data: "", status: 200, headers: {}, url: "", ...response } as HttpResponse;
+    return { data: "", status: 200, headers: {}, url: "", ...response } as NativeHttpResponse;
   });
   return { webFetch, nativeRequest, fetch: createNativeFetch(webFetch as unknown as typeof fetch, nativeRequest) };
 }
@@ -33,26 +32,32 @@ describe("native fetch", () => {
     expect(nativeRequest).not.toHaveBeenCalled();
   });
 
-  it("applies youtube header rules and sends string bodies as text", async () => {
-    const { fetch, nativeRequest } = setup({ data: { ok: true }, headers: { "content-type": "application/json" } });
+  it("applies youtube header rules and sends the body as base64", async () => {
+    const { fetch, nativeRequest } = setup({ data: base64('{"ok":true}'), headers: { "content-type": "application/json" } });
     const res = await fetch("https://music.youtube.com/youtubei/v1/search", {
       method: "POST",
       headers: { "content-type": "application/json", "x-liner-user-agent": "VR/1" },
-      body: JSON.stringify({ query: "a" }),
+      body: JSON.stringify({ query: "晴天" }),
     });
     const options = nativeRequest.mock.calls[0][0];
     expect(options.method).toBe("POST");
-    expect(options.data).toBe('{"query":"a"}');
-    expect(options.dataType).toBeUndefined();
+    expect(decodeURIComponent(escape(atob(options.body!)))).toBe('{"query":"晴天"}');
     expect(options.headers.Origin).toBe("https://music.youtube.com");
     expect(options.headers["User-Agent"]).toBe("VR/1");
     expect(await res.json()).toEqual({ ok: true });
   });
 
-  it("decodes base64 binary bodies and keeps 206 range headers", async () => {
+  it("keeps json bodies that aren't valid json (sw.js_data's )]}' prefix)", async () => {
+    const raw = `)]}'\n[["yt.sw.adr",null,[["CgtWaXNpdG9y"]]]]`;
+    const { fetch } = setup({ data: base64(raw), headers: { "content-type": "application/json; charset=utf-8" } });
+    const res = await fetch("https://www.youtube.com/sw.js_data");
+    expect(await res.text()).toBe(raw);
+  });
+
+  it("decodes binary bodies and keeps 206 range headers", async () => {
     const { fetch } = setup({
       status: 206,
-      data: base64("\x00\x01\x02\xff"),
+      data: btoa("\x00\x01\x02\xff"),
       headers: { "content-type": "audio/mp4", "content-range": "bytes 0-3/100" },
       url: "https://rr1.googlevideo.com/videoplayback?range=0-3",
     });
@@ -63,7 +68,7 @@ describe("native fetch", () => {
     expect(res.url).toBe("https://rr1.googlevideo.com/videoplayback?range=0-3");
   });
 
-  it("decodes text responses and reports the redirected url", async () => {
+  it("reports the redirected url", async () => {
     const { fetch } = setup({ data: base64("hello"), headers: { "content-type": "text/html" }, url: "https://soundcloud.com/a/b" });
     const res = await fetch("https://on.soundcloud.com/xyz");
     expect(await res.text()).toBe("hello");
@@ -77,13 +82,10 @@ describe("native fetch", () => {
     expect(await (await head.fetch("https://lrclib.net/x", { method: "HEAD" })).text()).toBe("");
   });
 
-  it("sends binary bodies as base64 files", async () => {
+  it("sends no body for GET", async () => {
     const { fetch, nativeRequest } = setup({});
-    await fetch("https://example.com/upload", { method: "POST", body: new Uint8Array([1, 2, 3]) });
-    const options = nativeRequest.mock.calls[0][0];
-    expect(options.dataType).toBe("file");
-    expect(options.data).toBe(btoa("\x01\x02\x03"));
-    expect(options.headers["Content-Type"]).toBe("application/octet-stream");
+    await fetch("https://lrclib.net/x");
+    expect(nativeRequest.mock.calls[0][0].body).toBeUndefined();
   });
 
   it("rejects with AbortError when aborted", async () => {

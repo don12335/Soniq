@@ -1,21 +1,32 @@
-import { CapacitorHttp, type HttpResponse } from "@capacitor/core";
+import { registerPlugin } from "@capacitor/core";
 import { applyHostHeaderRules } from "../headerRules";
 
-type NativeRequest = (options: {
+export interface NativeHttpRequest {
   url: string;
   method: string;
   headers: Record<string, string>;
-  data?: string;
-  dataType?: "file";
-  responseType: "arraybuffer";
-  connectTimeout: number;
-  readTimeout: number;
-}) => Promise<HttpResponse>;
+  // base64; bodies pass through untouched in both directions
+  body?: string;
+  timeout: number;
+}
+
+export interface NativeHttpResponse {
+  status: number;
+  headers: Record<string, string>;
+  url: string;
+  data: string;
+}
+
+type NativeRequest = (options: NativeHttpRequest) => Promise<NativeHttpResponse>;
+
+// SoniqHttpPlugin.swift in the Soniq-iOS shell. Capacitor's own CapacitorHttp can't be used:
+// it parses application/json responses itself and loses bodies like YouTube's ")]}'"-prefixed sw.js_data.
+const SoniqHttp = registerPlugin<{ request(options: NativeHttpRequest): Promise<NativeHttpResponse> }>("SoniqHttp");
 
 const NULL_BODY_STATUS = new Set([101, 204, 205, 304]);
 
 // WKWebView enforces CORS and won't let pages set Origin/Referer/User-Agent, so every
-// cross-origin http(s) request goes through native URLSession (CapacitorHttp) instead.
+// cross-origin http(s) request goes through native URLSession instead.
 export function shouldUseNative(url: string): boolean {
   if (!/^https?:/i.test(url)) return false;
   try {
@@ -42,30 +53,11 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-function base64ToBytes(base64: string): Uint8Array {
+function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
-}
-
-function isJsonContentType(headers: Record<string, string>): boolean {
-  return (headers["content-type"] ?? "").toLowerCase().includes("application/json");
-}
-
-// iOS parses JSON responses itself regardless of responseType; everything else arrives as base64.
-function responseBody(res: HttpResponse): BodyInit {
-  const headers = res.headers ?? {};
-  if (isJsonContentType(headers) && typeof res.data !== "string") {
-    return JSON.stringify(res.data);
-  }
-  if (typeof res.data !== "string") return JSON.stringify(res.data ?? null);
-  if (isJsonContentType(headers)) return res.data;
-  try {
-    return base64ToBytes(res.data) as Uint8Array<ArrayBuffer>;
-  } catch {
-    return res.data;
-  }
 }
 
 function abortError(): DOMException {
@@ -103,36 +95,16 @@ export function createNativeFetch(webFetch: typeof fetch, nativeRequest: NativeR
       headers["User-Agent"] = navigator.userAgent;
     }
 
-    let data: string | undefined;
-    let dataType: "file" | undefined;
+    let body: string | undefined;
     if (method !== "GET" && method !== "HEAD") {
-      const contentType = request.headers.get("content-type") ?? "";
-      if (/^(text\/|application\/(json|x-www-form-urlencoded|xml))/i.test(contentType)) {
-        data = await request.text();
-      } else {
-        const bytes = new Uint8Array(await request.arrayBuffer());
-        if (bytes.length > 0) {
-          data = bytesToBase64(bytes);
-          dataType = "file";
-        }
-      }
-      // iOS only sends a body when Content-Type is set
-      if (data !== undefined && !contentType) headers["Content-Type"] = "application/octet-stream";
+      const bytes = new Uint8Array(await request.arrayBuffer());
+      if (bytes.length > 0) body = bytesToBase64(bytes);
     }
 
-    let res: HttpResponse;
+    let res: NativeHttpResponse;
     try {
       res = await raceAbort(
-        nativeRequest({
-          url: request.url,
-          method,
-          headers,
-          data,
-          dataType,
-          responseType: "arraybuffer",
-          connectTimeout: 15000,
-          readTimeout: 30000,
-        }),
+        nativeRequest({ url: request.url, method, headers, body, timeout: 30000 }),
         request.signal,
       );
     } catch (error) {
@@ -140,10 +112,11 @@ export function createNativeFetch(webFetch: typeof fetch, nativeRequest: NativeR
       throw new TypeError("Failed to fetch", { cause: error });
     }
 
-    const body = NULL_BODY_STATUS.has(res.status) || method === "HEAD" ? null : responseBody(res);
-    const response = new Response(body, {
+    const responseBody =
+      NULL_BODY_STATUS.has(res.status) || method === "HEAD" || !res.data ? null : base64ToBytes(res.data);
+    const response = new Response(responseBody, {
       status: res.status,
-      headers: res.headers as Record<string, string>,
+      headers: res.headers,
     });
     Object.defineProperty(response, "url", { value: res.url || request.url });
     return response;
@@ -152,5 +125,5 @@ export function createNativeFetch(webFetch: typeof fetch, nativeRequest: NativeR
 
 export function installNativeFetch(): void {
   const webFetch = window.fetch.bind(window);
-  window.fetch = createNativeFetch(webFetch, (options) => CapacitorHttp.request(options));
+  window.fetch = createNativeFetch(webFetch, (options) => SoniqHttp.request(options));
 }
