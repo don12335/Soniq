@@ -16,6 +16,7 @@ import {
   CreatePlaylistModal,
 } from "@/features/library";
 import { setThemeStatusBarTone } from "@/shared/platform/native/statusBarTone";
+import { useTouchScrollClickGuard } from "@/shared/hooks/useTouchScrollClickGuard";
 import MobileTabBar from "./navigation/MobileTabBar";
 import MobileMiniPlayer from "./player/MobileMiniPlayer";
 import MobileNowPlaying from "./player/MobileNowPlaying";
@@ -59,6 +60,7 @@ function MobileRoutes() {
 // Phone layout: page content, a mini player above a bottom tab bar, and a full-screen
 // now-playing sheet. Desktop uses AppFrame instead (see AuthLock).
 export default function MobileShell() {
+  useTouchScrollClickGuard();
   const { pathname, search } = useLocation();
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const isSearch = pathname === "/search";
