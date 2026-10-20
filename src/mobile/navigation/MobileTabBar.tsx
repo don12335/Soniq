@@ -17,7 +17,7 @@ function activeTabFor(pathname: string): string {
   return "home";
 }
 
-export default function MobileTabBar() {
+export default function MobileTabBar({ translucent = false }: { translucent?: boolean }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -25,7 +25,10 @@ export default function MobileTabBar() {
 
   return (
     <nav
-      className="absolute inset-x-0 bottom-0 z-[40] flex items-stretch border-t border-border-primary/40 bg-bg-primary/85 backdrop-blur-xl in-data-[keyboard=open]:hidden"
+      className={`absolute inset-x-0 bottom-0 z-[40] flex items-stretch border-t backdrop-blur-xl in-data-[keyboard=open]:hidden ${
+        // over a wallpaper / gradient background the bar is glass instead of the page colour
+        translucent ? "border-white/10 bg-black/35" : "border-border-primary/40 bg-bg-primary/85"
+      }`}
       style={{ height: "calc(var(--m-tab-h) + var(--safe-bottom))", paddingBottom: "var(--safe-bottom)" }}
       aria-label="Tab bar"
     >

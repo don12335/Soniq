@@ -4,6 +4,7 @@ import { AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import HomePage from "@/features/home/ui/HomePage";
 import PageTransition from "@/features/navigation/ui/PageTransition";
+import { ShellBackground, useShellBackground } from "@/features/navigation/ui/ShellBackground";
 import { playerEngine, usePlayerStore } from "@/features/player";
 import {
   AddToPlaylistModal,
@@ -80,6 +81,9 @@ export default function MobileShell() {
   );
 
   const { resolvedTheme } = useTheme();
+  // wallpaper / gradient theme (ambient background), same as the desktop shell
+  const shellBackground = useShellBackground();
+  const { hasCustomBg, usesAmbient, mainStyle } = shellBackground;
   useEffect(() => {
     setThemeStatusBarTone(resolvedTheme === "dark" ? "dark" : "light");
   }, [resolvedTheme]);
@@ -113,10 +117,19 @@ export default function MobileShell() {
     : "calc(var(--m-tab-h) + var(--safe-bottom))";
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden bg-bg-primary">
-      <div className="shrink-0 bg-bg-primary" style={{ height: "var(--safe-top)" }} />
+    <div
+      data-custom-bg={hasCustomBg ? "true" : undefined}
+      data-ambient={usesAmbient ? "true" : undefined}
+      className="relative flex h-full w-full flex-col overflow-hidden bg-bg-primary"
+    >
+      <ShellBackground background={shellBackground} />
+      <div className={`relative shrink-0 ${hasCustomBg ? "" : "bg-bg-primary"}`} style={{ height: "var(--safe-top)" }} />
 
-      <main className="relative min-h-0 flex-1" style={{ paddingBottom: bottomReserve }}>
+      <main
+        data-custom-bg={hasCustomBg ? "true" : undefined}
+        className="relative min-h-0 flex-1"
+        style={{ ...(hasCustomBg ? { ...mainStyle, boxShadow: undefined } : {}), paddingBottom: bottomReserve }}
+      >
         <div ref={mainScrollRef} className={`h-full overflow-x-hidden overflow-y-auto ${isSearch ? "hidden" : ""}`}>
           <PageTransition>
             <MobileRoutes />
@@ -136,7 +149,7 @@ export default function MobileShell() {
         </div>
       )}
 
-      <MobileTabBar />
+      <MobileTabBar translucent={hasCustomBg} />
 
       <AnimatePresence>
         {fullscreenOpen && hasCurrentTrack && <MobileNowPlaying key="now-playing" onClose={closeNowPlaying} />}

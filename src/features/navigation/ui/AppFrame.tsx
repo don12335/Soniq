@@ -1,4 +1,3 @@
-import { selectEffectiveBackground, selectBackgroundBlur, selectBackgroundDim, selectBlockConfig, selectUsesAmbient } from "@/features/settings/store/customizationStore";
 import {
   useCallback,
   useEffect,
@@ -15,6 +14,7 @@ import Sidebar from "./Sidebar";
 import WindowControls from "./WindowControls";
 import PageTransition from "./PageTransition";
 import RightDrawer from "./RightDrawer";
+import { ShellBackground, useShellBackground } from "./ShellBackground";
 import { useGlobalShortcuts } from "../hooks/useGlobalShortcuts";
 import { useDisableButtonFocus } from "../hooks/useDisableButtonFocus";
 import {
@@ -31,7 +31,6 @@ import {
 import SearchResultsList from "@/features/search/ui/SearchResultsList";
 import { SearchHistoryList } from "@/features/search";
 import { useTranslation } from "@/languages";
-import { useTheme } from "next-themes";
 import {
   AddToPlaylistModal,
   AddToLibraryModal,
@@ -42,7 +41,7 @@ import {
   CreatePlaylistModal,
   useModalStore,
 } from "@/features/library";
-import { SettingsModal, useCustomizationStore, getBlockStyle } from "@/features/settings";
+import { SettingsModal } from "@/features/settings";
 import { UpdateModal, UpdateToastBridge } from "@/features/updater";
 
 
@@ -343,27 +342,8 @@ export default function AppFrame({ children }: AppFrameProps) {
     [selectHistoryQuery],
   );
 
-  const { resolvedTheme } = useTheme();
-  const isDark =
-    resolvedTheme
-      ? resolvedTheme === "dark"
-      : typeof document !== "undefined" &&
-        (document.documentElement.getAttribute("data-theme") === "dark" ||
-          (!document.documentElement.getAttribute("data-theme") &&
-            window.matchMedia?.("(prefers-color-scheme: dark)")?.matches));
-  const backgroundImage = useCustomizationStore(selectEffectiveBackground);
-  const gradientThemeEnabled = useCustomizationStore((state) => state.gradientThemeEnabled);
-  const backgroundBlur = useCustomizationStore(selectBackgroundBlur);
-  const backgroundDim = useCustomizationStore(selectBackgroundDim);
-  const contentViewConfig = useCustomizationStore(selectBlockConfig("contentView"));
-
-  const hasCustomBg = Boolean(backgroundImage && isDark);
-  const usesAmbient = useCustomizationStore(selectUsesAmbient) && hasCustomBg;
-
-  const mainStyle = useMemo(
-    () => getBlockStyle(contentViewConfig, isDark, hasCustomBg),
-    [contentViewConfig, isDark, hasCustomBg],
-  );
+  const shellBackground = useShellBackground();
+  const { hasCustomBg, usesAmbient, mainStyle } = shellBackground;
 
   return (
     <div
@@ -376,30 +356,7 @@ export default function AppFrame({ children }: AppFrameProps) {
         if (e.currentTarget.scrollTop !== 0) e.currentTarget.scrollTop = 0;
       }}
     >
-      {hasCustomBg && backgroundImage && (
-        <div
-          className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-5xl"
-          aria-hidden="true"
-        >
-          <img
-            src={backgroundImage}
-            alt=""
-            className="w-full h-full object-cover select-none"
-            style={{
-              filter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : undefined,
-              transform: backgroundBlur > 0 ? "scale(1.05)" : undefined,
-            }}
-          />
-          {backgroundDim > 0 && (
-            <div
-              className="absolute inset-0 bg-black"
-              style={{ opacity: backgroundDim / 100 }}
-            />
-          )}
-          {/* tint the user's wallpaper toward the Soniq palette; the built-in fog already is */}
-          {gradientThemeEnabled && !usesAmbient && <div className="soniq-fog" aria-hidden="true" />}
-        </div>
-      )}
+      <ShellBackground background={shellBackground} className="rounded-5xl" />
 
       <aside
         ref={sidebarRef}
