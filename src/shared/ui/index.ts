@@ -13,6 +13,8 @@ export {
   type ToastCallable,
 } from "./Toast";
 export { default as DropdownMenu, type DropdownMenuProps, type DropdownMenuItem } from "./DropdownMenu";
+export { default as BottomSheet, type BottomSheetProps } from "./BottomSheet";
+export { default as ActionSheet, type ActionSheetProps } from "./ActionSheet";
 export { AppleEmojiProvider } from "./AppleEmojiProvider";
 export { default as ExplicitBadge } from "./ExplicitBadge";
 export { default as ScrollableRow } from "./ScrollableRow";

@@ -8,6 +8,8 @@ import HighlightedText from "@/shared/ui/HighlightedText";
 import ExplicitBadge from "@/shared/ui/ExplicitBadge";
 import CoverImage from "@/features/covers/ui/CoverImage";
 import { isCoverReady } from "@/features/covers/lib/coverArt";
+import GrabberIcon from "@/shared/ui/GrabberIcon";
+import { isMobileLayout } from "@/shared/platform";
 import type { TrackArtist } from "@/shared/types";
 
 export interface SongCardProps {
@@ -123,9 +125,11 @@ function SongCard({
           clearTimeout(clickTimerRef.current);
           clickTimerRef.current = null;
         }
-        if (e.clientY <= 32) return;
+        if (e.clientY <= 32 && e.pointerType === "mouse") return;
         if (!onGrabStart) return;
         const target = e.target as HTMLElement;
+        // on touch the row scrolls the list; reordering starts only from the grab handle
+        if (e.pointerType !== "mouse" && !target.closest("[data-reorder-handle]")) return;
         if (
           target.closest("button") ||
           target.closest("a") ||
@@ -252,13 +256,24 @@ function SongCard({
             {duration}
           </span>
         )}
+        {onGrabStart && isMobileLayout() && (
+          <div
+            data-reorder-handle
+            data-drag-handle
+            aria-hidden="true"
+            onClick={(e) => e.stopPropagation()}
+            className="-mr-[6px] flex h-[44px] w-[36px] items-center justify-center text-text-tertiary"
+          >
+            <GrabberIcon size={20} />
+          </div>
+        )}
         {menuItems && menuItems.length > 0 && (
           <DropdownMenu
             trigger={
               <button
                 type="button"
                 aria-label={t("common.more_options")}
-                className="rounded-md bg-transparent border-0 p-0 text-text-primary transition-all duration-200 active:scale-[0.96] flex items-center justify-center cursor-pointer"
+                className="rounded-md bg-transparent border-0 p-0 text-text-primary transition-all duration-200 active:scale-[0.96] flex items-center justify-center cursor-pointer mobile:min-w-[44px] mobile:min-h-[44px]"
               >
                 <More2Fill size={22} />
               </button>

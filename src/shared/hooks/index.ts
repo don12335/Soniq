@@ -20,3 +20,5 @@ export {
   type UseListReorderReturn,
 } from "./useListReorder";
 
+
+export { useLongPress, type LongPressHandlers } from "./useLongPress";

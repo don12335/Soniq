@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getCapabilities } from "@/shared/platform";
 import { FolderOpenLine } from "@mingcute/react";
 import { useToast } from "@/shared/ui";
 import Button from "@/shared/ui/Button";
@@ -73,7 +74,7 @@ export function AudioTab({ searchQuery }: { searchQuery?: string }) {
           }
           control={
             <div className="flex items-center gap-[8px]">
-              {dumpExported && (
+              {dumpExported && getCapabilities().openFolders && (
                 <Button
                   variant="secondary"
                   type="button"

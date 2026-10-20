@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, memo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { isMobileLayout } from "@/shared/platform";
 
 export interface TooltipProps {
   content: ReactNode;
@@ -27,6 +28,8 @@ function Tooltip({
   multiline = false,
   wrapperClassName = "",
 }: TooltipProps) {
+  // no hover on touch screens
+  disabled = disabled || isMobileLayout();
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });

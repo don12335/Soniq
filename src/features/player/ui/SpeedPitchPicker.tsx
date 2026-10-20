@@ -1,4 +1,5 @@
 import { memo, useCallback, useRef, useState } from "react";
+import { getCapabilities } from "@/shared/platform";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePlayerState } from "../hooks/usePlayerState";
 import { playerEngine } from "../engine/playerEngine";
@@ -226,6 +227,7 @@ function SliderRow({
 export const SpeedPitchPicker = memo(function SpeedPitchPicker({
   className = "",
 }: SpeedPitchPickerProps) {
+  const { audioEffects } = getCapabilities();
   const { t } = useTranslation();
   const player = usePlayerState();
 
@@ -320,7 +322,8 @@ export const SpeedPitchPicker = memo(function SpeedPitchPicker({
         ariaLabel={t("player.speed")}
       />
 
-      {/* Pitch Slider */}
+      {/* Pitch Slider (WebAudio; not on iOS, where it would stop background playback) */}
+      {audioEffects && (
       <SliderRow
         label={t("player.pitch")}
         valueText={`${pitchSemitones > 0 ? `+${pitchSemitones.toFixed(1)}` : pitchSemitones.toFixed(1)} st`}
@@ -337,6 +340,7 @@ export const SpeedPitchPicker = memo(function SpeedPitchPicker({
         onChange={handlePitchChange}
         ariaLabel={t("player.pitch")}
       />
+      )}
 
       {/* Options (without separator above) */}
       <div className="flex flex-col gap-[12px] pt-[2px]">
@@ -377,6 +381,7 @@ export const SpeedPitchPicker = memo(function SpeedPitchPicker({
         </div>
 
         {/* Reverb group */}
+        {audioEffects && (
         <div className="flex flex-col pt-[2px]">
           <div className="flex items-center justify-between gap-[8px]">
             <div className="flex flex-col">
@@ -431,6 +436,7 @@ export const SpeedPitchPicker = memo(function SpeedPitchPicker({
             )}
           </AnimatePresence>
         </div>
+        )}
       </div>
     </div>
   );

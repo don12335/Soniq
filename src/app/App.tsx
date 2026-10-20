@@ -14,7 +14,7 @@ import { AppRoutes } from "./routes";
 import DeeplinkHandler from "./DeeplinkHandler";
 import EnvironmentWarning from "./EnvironmentWarning";
 import { ConnectivityWall } from "@/features/connectivity";
-import { isElectron } from "@/shared/platform";
+import { isElectron, isMobileLayout } from "@/shared/platform";
 import "./globals.css";
 import "./soniq-liquid.css";
 
@@ -91,7 +91,7 @@ export default function App() {
         enableSystem={true}
         disableTransitionOnChange
       >
-        <GlobalTooltip />
+        {!isMobileLayout() && <GlobalTooltip />}
         <ThemeSync />
         {isElectron() && <DesktopShellSync />}
         <AppleEmojiProvider>

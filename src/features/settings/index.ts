@@ -4,3 +4,5 @@ export * from "./ui/tabs";
 export * from "./store/customizationStore";
 export * from "./hooks/useThemeCustomizationSync";
 
+export * from "./data/settingsTabs";
+export { SettingsTabContent, useSettingsTabText } from "./ui/SettingsTabContent";

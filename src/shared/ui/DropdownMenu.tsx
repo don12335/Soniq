@@ -7,6 +7,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { isMobileLayout } from "@/shared/platform";
+import ActionSheet from "./ActionSheet";
 
 export interface DropdownMenuItem {
   id: string;
@@ -94,8 +96,11 @@ export default function DropdownMenu({
   const isFixed = Boolean(targetPos);
   const fixedStyle = useFixedStyle(menuRef, isFixed, targetPos, open, side, align);
 
+  const mobile = isMobileLayout();
+
   useEffect(() => {
-    if (!open) return;
+    // the action sheet closes itself through its backdrop
+    if (!open || mobile) return;
     const onMouseDown = (e: MouseEvent) => {
       if (
         menuRef.current?.contains(e.target as Node) ||
@@ -117,9 +122,11 @@ export default function DropdownMenu({
       document.removeEventListener("mousedown", onMouseDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, setOpen]);
+  }, [open, setOpen, mobile]);
 
-  const menuContent = (
+  const menuContent = mobile ? (
+    <ActionSheet open={open} onClose={() => setOpen(false)} items={items} />
+  ) : (
     <AnimatePresence>
       {open && (
         <motion.div
@@ -188,9 +195,9 @@ export default function DropdownMenu({
       }}
     >
       {trigger}
-      {isFixed && typeof document !== "undefined"
-        ? createPortal(menuContent, document.body)
-        : menuContent}
+      {mobile || !isFixed || typeof document === "undefined"
+        ? menuContent
+        : createPortal(menuContent, document.body)}
     </div>
   );
 }

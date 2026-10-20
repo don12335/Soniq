@@ -298,7 +298,7 @@ function CollectionContent() {
   return (
     <div className="relative h-full w-full overflow-hidden bg-transparent">
 
-      <div className="absolute top-0 left-0 right-0 h-[56px] z-10 flex flex-row items-stretch select-none pointer-events-none">
+      <div className="absolute top-0 left-0 right-0 h-[56px] z-10 flex flex-row items-stretch select-none pointer-events-none mobile:hidden">
         <div
           data-window-drag
           onContextMenu={(e) => e.preventDefault()}
@@ -317,7 +317,7 @@ function CollectionContent() {
         aria-label={t("common.back")}
         data-no-tooltip="true"
         data-no-window-drag
-        className={`absolute top-[12px] left-[32px] z-20 group inline-flex h-[32px] shrink-0 items-center gap-[6px] rounded-md px-[10px] active:scale-[0.94] transition-all cursor-pointer select-none pointer-events-auto text-[13px] font-[500] border-0 !border-none ${
+        className={`absolute top-[12px] left-[32px] mobile:left-[16px] z-20 group inline-flex h-[32px] shrink-0 items-center gap-[6px] rounded-md px-[10px] active:scale-[0.94] transition-all cursor-pointer select-none pointer-events-auto text-[13px] font-[500] border-0 !border-none ${
           hasCustomBg
             ? "apple-glass-pill !border-none"
             : "bg-bg-panel/85 backdrop-blur-xl text-text-primary hover:bg-bg-panel border-0 !border-none"
@@ -349,9 +349,9 @@ function CollectionContent() {
               isReady ? "opacity-100" : "opacity-0 pointer-events-none"
             }`}
           >
-            <div className="relative z-10 flex flex-row items-stretch gap-[16px] pl-[32px] pr-[16px] h-full w-full min-h-0 box-border">
+            <div className="relative z-10 flex flex-row items-stretch gap-[16px] pl-[32px] pr-[16px] h-full w-full min-h-0 box-border mobile:flex-col mobile:items-stretch mobile:gap-[8px] mobile:px-[16px] mobile:overflow-y-auto mobile:overflow-x-hidden">
               <div
-                className="shrink-0 w-[280px] self-start pt-[56px] pb-[24px]"
+                className="shrink-0 w-[280px] self-start pt-[56px] pb-[24px] mobile:w-full mobile:self-stretch mobile:pb-[8px]"
                 data-no-window-drag
               >
                 <EntitySidebar
@@ -574,7 +574,7 @@ function CollectionContent() {
                     targetScrollTopRef.current = null;
                   }
                 }}
-                className="min-w-0 flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden px-[8px] pt-[56px] pb-[24px] overscroll-contain"
+                className="min-w-0 flex-1 h-full min-h-0 overflow-y-auto overflow-x-hidden px-[8px] pt-[56px] pb-[24px] overscroll-contain mobile:h-auto mobile:flex-none mobile:overflow-visible mobile:px-0 mobile:pt-0"
                 style={{ willChange: "scroll-position" }}
               >
               <section>

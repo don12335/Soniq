@@ -5,6 +5,8 @@ import { playerEngine } from "../engine/playerEngine";
 import { usePlayerStore } from "../store/playerStore";
 import { useToast } from "@/shared/ui";
 import { useTranslation } from "@/languages";
+import { useLongPress } from "@/shared/hooks";
+import { isMobileLayout } from "@/shared/platform";
 
 import type { TrackArtist } from "@/shared/types";
 
@@ -149,7 +151,15 @@ function SongCardWithMenu({
     if (!isOpen) setMenuPosition(null);
   }, []);
 
-  return (
+  // phones: a tap plays right away (no double-click wait) and a long press opens the menu
+  const mobile = isMobileLayout();
+  const longPress = useLongPress((point) => {
+    if (menuItems.length === 0) return;
+    setMenuPosition(point);
+    setMenuOpen(true);
+  });
+
+  const card = (
     <SongCard
       id={id}
       title={title}
@@ -160,7 +170,7 @@ function SongCardWithMenu({
       coverUrl={coverUrl}
       className={className}
       onPlay={onPlay}
-      onDoubleClick={handleDoubleClick}
+      onDoubleClick={mobile ? undefined : handleDoubleClick}
       duration={duration}
       releaseDate={releaseDate}
       explicit={explicit}
@@ -178,6 +188,13 @@ function SongCardWithMenu({
       showReorderHandle={showReorderHandle}
       onGrabStart={onGrabStart}
     />
+  );
+
+  if (!mobile) return card;
+  return (
+    <div className="contents" {...longPress}>
+      {card}
+    </div>
   );
 }
 

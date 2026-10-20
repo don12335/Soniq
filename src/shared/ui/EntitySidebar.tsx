@@ -31,7 +31,7 @@ export function EntitySidebar({
   backLabel = "Back",
 }: EntitySidebarProps) {
   return (
-    <aside className="sticky top-[20px] w-[280px] shrink-0 self-start" data-no-window-drag>
+    <aside className="sticky top-[20px] w-[280px] shrink-0 self-start mobile:static mobile:w-full mobile:self-stretch" data-no-window-drag>
       {onBack && (
         <button
           type="button"
@@ -45,7 +45,7 @@ export function EntitySidebar({
       )}
 
       <div
-        className={`relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md ${
+        className={`relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md mobile:mx-auto mobile:w-[min(68vw,280px)] ${
           coverClassName || "bg-border-alpha-14"
         } ${onBack ? "mt-[16px]" : ""}`}
       >

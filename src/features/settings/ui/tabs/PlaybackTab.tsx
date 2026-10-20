@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { isMobileLayout, isNative } from "@/shared/platform";
 import { useTranslation } from "@/languages";
 import { usePlayerStore } from "@/features/player";
 import { ToggleSwitch } from "@/shared/ui";
@@ -51,6 +52,8 @@ export function PlaybackTab({ searchQuery }: { searchQuery?: string }) {
         }
       />
 
+      {/* touch screens play on tap, there is no double click */}
+      {!isMobileLayout() && (
       <SettingRow
         title={t("settings.track_double_click.title")}
         description={t("settings.track_double_click.description")}
@@ -79,6 +82,7 @@ export function PlaybackTab({ searchQuery }: { searchQuery?: string }) {
           )
         }
       />
+      )}
 
       <SettingRow
         title={t("settings.default_playback_context.title")}
@@ -109,6 +113,8 @@ export function PlaybackTab({ searchQuery }: { searchQuery?: string }) {
         }
       />
 
+      {/* iOS pauses on its own when headphones disconnect */}
+      {!isNative() && (
       <SettingRow
         title={t("settings.audio.pause_on_device_change.title")}
         description={t("settings.audio.pause_on_device_change.description")}
@@ -122,6 +128,7 @@ export function PlaybackTab({ searchQuery }: { searchQuery?: string }) {
           />
         }
       />
+      )}
     </SettingSection>
   );
 }

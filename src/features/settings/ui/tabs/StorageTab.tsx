@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { getCapabilities } from "@/shared/platform";
 import { motion, AnimatePresence } from "framer-motion";
 import type { AnimationItem } from "lottie-web";
 import { FolderOpenLine, CheckLine } from "@mingcute/react";
@@ -577,17 +578,19 @@ export function StorageTab({ searchQuery: _searchQuery }: { searchQuery?: string
             : t("settings.storage.clear_selected")}
         </Button>
 
-        <Button
-          variant="secondary"
-          size="default"
-          type="button"
-          onClick={handleOpenFolder}
-          title={t("settings.storage.open_folder")}
-          className="flex items-center gap-[6px] !h-[40px] px-[14px] font-[500] text-[13px] rounded-xl shrink-0"
-        >
-          <FolderOpenLine size={16} />
-          <span>{t("settings.storage.open_folder")}</span>
-        </Button>
+        {getCapabilities().openFolders && (
+          <Button
+            variant="secondary"
+            size="default"
+            type="button"
+            onClick={handleOpenFolder}
+            title={t("settings.storage.open_folder")}
+            className="flex items-center gap-[6px] !h-[40px] px-[14px] font-[500] text-[13px] rounded-xl shrink-0"
+          >
+            <FolderOpenLine size={16} />
+            <span>{t("settings.storage.open_folder")}</span>
+          </Button>
+        )}
       </div>
           </motion.div>
         )}

@@ -23,6 +23,8 @@ export {
   type FullscreenPlayerProps,
 } from "./ui/FullscreenPlayer";
 export { PlayerUiElements } from "./ui/PlayerUiElements";
+export { PlaybackControls, PlayPauseIcon, type PlaybackControlsSize } from "./ui/PlaybackControls";
+export { BraccatoLyricsView } from "./ui/BraccatoLyricsView";
 export { KawarpWrapper } from "./ui/KawarpWrapper";
 export { default as SongCard, type SongCardProps } from "./ui/SongCard";
 export {

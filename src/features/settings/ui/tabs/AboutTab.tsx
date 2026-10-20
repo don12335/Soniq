@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getCapabilities, isIOS } from "@/shared/platform";
 import { FaGithub } from "react-icons/fa";
 import { Refresh1Line, CheckLine } from "@mingcute/react";
 import Button from "@/shared/ui/Button";
@@ -140,12 +141,16 @@ export function AboutTab({ searchQuery }: { searchQuery?: string }) {
           {lastCheckedTime ? ` · ${lastCheckedTime}` : ""}
         </span>
 
-        {/* Update Checker Button */}
+        {/* Update Checker Button (desktop auto-updater; sideloaded iOS builds link to the IPA releases) */}
         <div className="w-full flex items-center justify-center mb-[20px]">
           <Button
             variant="secondary"
             size="sm"
-            onClick={handleCheckUpdates}
+            onClick={
+              getCapabilities().autoUpdate || !isIOS()
+                ? handleCheckUpdates
+                : () => openUrl("https://github.com/don12335/Soniq-iOS/releases")
+            }
             disabled={checkingUpdate}
             className="!h-[32px] !px-[16px] !text-[12.5px] !gap-[7px] !rounded-lg"
           >

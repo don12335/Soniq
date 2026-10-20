@@ -6,7 +6,7 @@ import { applyWindowVisibility } from "@/shared/utils/windowVisibility";
 export type StatusBarTone = "light" | "dark";
 
 // tone is the background behind the status bar: dark backgrounds need light text
-export async function setStatusBarTone(tone: StatusBarTone): Promise<void> {
+export async function applyStatusBarTone(tone: StatusBarTone): Promise<void> {
   try {
     await StatusBar.setStyle({ style: tone === "dark" ? Style.Dark : Style.Light });
   } catch {

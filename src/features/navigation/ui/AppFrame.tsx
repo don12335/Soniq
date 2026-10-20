@@ -10,15 +10,7 @@ import {
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Search3Line,
-  CloseCircleFill,
-  GridFill,
-  Music2Fill,
-  User2Fill,
-  AlbumFill,
-  PlaylistFill,
-} from "@mingcute/react";
+import { Search3Line, CloseCircleFill } from "@mingcute/react";
 import Sidebar from "./Sidebar";
 import WindowControls from "./WindowControls";
 import PageTransition from "./PageTransition";
@@ -26,13 +18,10 @@ import RightDrawer from "./RightDrawer";
 import { useGlobalShortcuts } from "../hooks/useGlobalShortcuts";
 import { useDisableButtonFocus } from "../hooks/useDisableButtonFocus";
 import {
-  useSearchTracks,
-  useSearchAll,
-  useSearchArtists,
-  useSearchAlbums,
-  useSearchPlaylists,
-} from "@/features/search/hooks";
-import { mediaUrl, toClientTrack, toMaxQualityAvatarUrl } from "@/shared/api";
+  SEARCH_FILTER_ICONS,
+  SEARCH_FILTER_KEYS,
+  useSearchController,
+} from "@/features/search/hooks/useSearchController";
 import {
   FullscreenPlayer,
   playerEngine,
@@ -40,7 +29,7 @@ import {
   usePlayerStore,
 } from "@/features/player";
 import SearchResultsList from "@/features/search/ui/SearchResultsList";
-import { SearchHistoryList, useSearchHistoryStore } from "@/features/search";
+import { SearchHistoryList } from "@/features/search";
 import { useTranslation } from "@/languages";
 import { useTheme } from "next-themes";
 import {
@@ -84,7 +73,26 @@ export default function AppFrame({ children }: AppFrameProps) {
   const toggleSearch = useModalStore((state) => state.toggleSearch);
   const openSettings = useModalStore((state) => state.openSettings);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const {
+    searchQuery,
+    setSearchQuery,
+    hasSearchQuery,
+    activeFilter,
+    setActiveFilter,
+    filterLabels,
+    isArtistSearchFilter,
+    isPlaylistSearchFilter,
+    historyItems,
+    searchResults,
+    searchLoading,
+    isSearchEmpty,
+    partialWarning,
+    runSearchNow,
+    handlePlayFromSearch,
+    handleNavigateItem,
+    submitSearchQuery,
+    selectHistoryQuery,
+  } = useSearchController({ enabled: searchOpen, onNavigate: closeSearch });
   const [queuePopupOpen, setQueuePopupOpen] = useState(false);
   const [rightDrawerTab, setRightDrawerTabState] = useState<"queue" | "lyrics">(() => {
     if (typeof window === "undefined") return "queue";
@@ -189,29 +197,6 @@ export default function AppFrame({ children }: AppFrameProps) {
   const searchScrollRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  type SearchFilterKey = "all" | "tracks" | "artists" | "albums" | "playlists";
-  const filterKeys: SearchFilterKey[] = [
-    "all",
-    "tracks",
-    "artists",
-    "albums",
-    "playlists",
-  ];
-  const filterLabels: Record<SearchFilterKey, string> = {
-    all: t("common.all"),
-    tracks: t("common.songs"),
-    artists: t("common.artists"),
-    albums: t("common.albums"),
-    playlists: t("common.playlists"),
-  };
-
-  const [activeFilter, setActiveFilter] = useState<SearchFilterKey>("all");
-  const isAllSearchFilter = activeFilter === "all";
-  const isTrackSearchFilter = activeFilter === "tracks";
-  const isArtistSearchFilter = activeFilter === "artists";
-  const isAlbumSearchFilter = activeFilter === "albums";
-  const isPlaylistSearchFilter = activeFilter === "playlists";
-  const hasSearchQuery = searchQuery.trim().length > 0;
   const isFullscreenRoute = pathname === "/player";
   const isFullscreenPlayer = isFullscreenRoute || fullscreenPlayerOpen;
   const shellChildrenRef = useRef<React.ReactNode>(null);
@@ -287,208 +272,6 @@ export default function AppFrame({ children }: AppFrameProps) {
   const [searchScrollMask, setSearchScrollMask] = useState(
     "linear-gradient(to bottom, black 0%, black 100%)",
   );
-  const addHistoryItem = useSearchHistoryStore((state) => state.addItem);
-  const historyItems = useSearchHistoryStore((state) => state.items);
-  const {
-    items: allResults,
-    loading: allLoading,
-    hasLoaded: allHasLoaded,
-    runNow: runAllSearchNow,
-    partialWarning,
-  } = useSearchAll(searchQuery, {
-    enabled: searchOpen && isAllSearchFilter,
-    limit: 20,
-    debounceMs: 320,
-  });
-
-  const {
-    tracks: trackResults,
-    loading: trackLoading,
-    hasLoaded: trackHasLoaded,
-    runNow: runTrackSearchNow,
-  } = useSearchTracks(searchQuery, {
-    enabled: searchOpen && isTrackSearchFilter,
-    limit: 20,
-    debounceMs: 320,
-  });
-
-  const {
-    artists: artistResults,
-    loading: artistLoading,
-    hasLoaded: artistHasLoaded,
-    runNow: runArtistSearchNow,
-  } = useSearchArtists(searchQuery, {
-    enabled: searchOpen && isArtistSearchFilter,
-    limit: 20,
-    debounceMs: 320,
-  });
-
-  const {
-    albums: albumResults,
-    loading: albumLoading,
-    hasLoaded: albumHasLoaded,
-    runNow: runAlbumSearchNow,
-  } = useSearchAlbums(searchQuery, {
-    enabled: searchOpen && isAlbumSearchFilter,
-    limit: 20,
-    debounceMs: 320,
-  });
-
-  const {
-    playlists: playlistResults,
-    loading: playlistLoading,
-    hasLoaded: playlistHasLoaded,
-    runNow: runPlaylistSearchNow,
-  } = useSearchPlaylists(searchQuery, {
-    enabled: searchOpen && isPlaylistSearchFilter,
-    limit: 20,
-    debounceMs: 320,
-  });
-
-  const searchResults = useMemo(() => {
-    if (isAllSearchFilter) {
-      return allResults.map((item: any) => {
-        const coverUrl = item.cover
-          ? mediaUrl(item.cover.url)
-          : (item.coverUrl ?? "");
-        if (item.type === "track") {
-          const clientTrack = toClientTrack(item);
-          return {
-            ...clientTrack,
-            ...item,
-            _type: "track",
-            coverUrl: clientTrack.coverUrl || coverUrl,
-            artists: clientTrack.artists,
-            artistId: clientTrack.artistId,
-            artistList: clientTrack.artistList,
-          };
-        }
-        if (item.type === "artist") {
-          return {
-            ...item,
-            _type: "artist",
-            title: item.name,
-            coverUrl: toMaxQualityAvatarUrl(coverUrl),
-            artists: "",
-          };
-        }
-        if (item.type === "album") {
-          return {
-            ...item,
-            _type: "album",
-            coverUrl,
-            artists: Array.isArray(item.artists)
-              ? item.artists.map((a: any) => a.name).join(", ")
-              : (item.artists ?? ""),
-            artistId: item.artists?.[0]?.id,
-            artistList: Array.isArray(item.artists)
-              ? item.artists.map((a: any) => ({ id: a.id, name: a.name }))
-              : undefined,
-          };
-        }
-        return {
-          ...item,
-          _type: item.type,
-          coverUrl,
-          artists: item.author ?? item.artists ?? "",
-          artistId: item.artists?.[0]?.id,
-          artistList: Array.isArray(item.artists)
-            ? item.artists.map((a: any) => ({ id: a.id, name: a.name }))
-            : undefined,
-        };
-      });
-    }
-    if (isTrackSearchFilter)
-      return trackResults.map((t: any) => {
-        const clientTrack = toClientTrack(t);
-        return {
-          ...clientTrack,
-          ...t,
-          _type: "track",
-          coverUrl:
-            clientTrack.coverUrl ||
-            (t.cover ? mediaUrl(t.cover.url) : (t.coverUrl ?? "")),
-          artists: clientTrack.artists,
-          artistId: clientTrack.artistId,
-          artistList: clientTrack.artistList,
-        };
-      });
-    if (isArtistSearchFilter)
-      return artistResults.map((a: any) => ({
-        ...a,
-        _type: "artist",
-        title: a.name,
-        coverUrl: toMaxQualityAvatarUrl(a.cover ? mediaUrl(a.cover.url) : (a.coverUrl ?? "")),
-      }));
-    if (isAlbumSearchFilter)
-      return albumResults.map((a: any) => ({
-        ...a,
-        _type: "album",
-        coverUrl: a.cover ? mediaUrl(a.cover.url) : (a.coverUrl ?? ""),
-        artists: Array.isArray(a.artists)
-          ? a.artists.map((ar: any) => ar.name).join(", ")
-          : (a.artists ?? ""),
-        artistId: a.artists?.[0]?.id,
-        artistList: Array.isArray(a.artists)
-          ? a.artists.map((ar: any) => ({ id: ar.id, name: ar.name }))
-          : undefined,
-      }));
-    if (isPlaylistSearchFilter)
-      return playlistResults.map((p: any) => ({
-        ...p,
-        _type: "playlist",
-        coverUrl: p.cover ? mediaUrl(p.cover.url) : (p.coverUrl ?? ""),
-      }));
-    return [];
-  }, [
-    isAllSearchFilter,
-    isTrackSearchFilter,
-    isArtistSearchFilter,
-    isAlbumSearchFilter,
-    isPlaylistSearchFilter,
-    allResults,
-    trackResults,
-    artistResults,
-    albumResults,
-    playlistResults,
-  ]);
-
-  const searchLoading = isAllSearchFilter
-    ? allLoading
-    : isTrackSearchFilter
-      ? trackLoading
-      : isArtistSearchFilter
-        ? artistLoading
-        : isAlbumSearchFilter
-          ? albumLoading
-          : playlistLoading;
-
-  const searchHasLoaded = isAllSearchFilter
-    ? allHasLoaded
-    : isTrackSearchFilter
-      ? trackHasLoaded
-      : isArtistSearchFilter
-        ? artistHasLoaded
-        : isAlbumSearchFilter
-          ? albumHasLoaded
-          : playlistHasLoaded;
-
-  const isSearchEmpty =
-    searchQuery.trim().length >= 2 &&
-    !searchLoading &&
-    searchHasLoaded &&
-    searchResults.length === 0;
-
-  const runSearchNow = () => {
-    if (isAllSearchFilter) {
-      runAllSearchNow();
-      return;
-    }
-    if (isTrackSearchFilter) runTrackSearchNow();
-    if (isArtistSearchFilter) runArtistSearchNow();
-    if (isAlbumSearchFilter) runAlbumSearchNow();
-    if (isPlaylistSearchFilter) runPlaylistSearchNow();
-  };
 
   useEffect(() => {
     if (isFullscreenPlayer) {
@@ -552,112 +335,12 @@ export default function AppFrame({ children }: AppFrameProps) {
     toggleSearch();
   }, [toggleSearch]);
 
-  const handlePlayFromSearch = useCallback(
-    (track: any) => {
-      playerEngine.primeUserGesture();
-      if (!track) {
-        return;
-      }
-      const durationMs = track.durationMs ?? track.duration_ms;
-      const durationStr = durationMs
-        ? `${Math.floor(durationMs / 60000)}:${Math.floor(
-            (durationMs % 60000) / 1000,
-          )
-            .toString()
-            .padStart(2, "0")}`
-        : "";
-      addHistoryItem({
-        id: track.id,
-        type: "track",
-        title: track.title,
-        subtitle: track.artists,
-        coverUrl: track.coverUrl,
-        explicit: track.explicit,
-        duration: durationStr,
-        durationMs,
-        itemData: track,
-      });
-      void playerEngine.playTrack(
-        track,
-        [track],
-        `${track.title} Radio`,
-        track.coverUrl,
-      );
-    },
-    [addHistoryItem],
-  );
-
-  const handleNavigateItem = useCallback(
-    (it: any) => {
-      closeSearch();
-      if (
-        it._type === "artist" ||
-        it.followers !== undefined ||
-        activeFilter === "artists"
-      ) {
-        addHistoryItem({
-          id: it.id,
-          type: "artist",
-          title: it.name || it.title,
-          subtitle: t("common.artists"),
-          coverUrl: it.coverUrl,
-          itemData: it,
-        });
-        navigate(`/artist?id=${encodeURIComponent(it.id)}`);
-      } else if (
-        it._type === "playlist" ||
-        it.owner !== undefined ||
-        activeFilter === "playlists"
-      ) {
-        addHistoryItem({
-          id: it.id,
-          type: "playlist",
-          title: it.name || it.title,
-          subtitle: it.author || it.owner || t("common.playlists"),
-          coverUrl: it.coverUrl,
-          itemData: it,
-        });
-        navigate(`/collection?type=playlist&id=${encodeURIComponent(it.id)}`);
-      } else if (
-        it._type === "album" ||
-        it.totalTracks !== undefined ||
-        it.total_tracks !== undefined ||
-        activeFilter === "albums"
-      ) {
-        addHistoryItem({
-          id: it.id,
-          type: "album",
-          title: it.name || it.title,
-          subtitle: it.artists || it.artist || t("common.albums"),
-          coverUrl: it.coverUrl,
-          itemData: it,
-        });
-        navigate(`/collection?type=album&id=${encodeURIComponent(it.id)}`);
-      }
-    },
-    [activeFilter, closeSearch, navigate, addHistoryItem, t],
-  );
-
-  const submitSearchQuery = useCallback(
-    (queryToSubmit: string) => {
-      const trimmed = queryToSubmit.trim();
-      if (!trimmed) return;
-      addHistoryItem({
-        id: `query:${trimmed.toLowerCase()}`,
-        type: "query",
-        title: trimmed,
-      });
-    },
-    [addHistoryItem],
-  );
-
   const handleSelectHistoryQuery = useCallback(
     (queryText: string) => {
-      setSearchQuery(queryText);
-      submitSearchQuery(queryText);
+      selectHistoryQuery(queryText);
       searchInputRef.current?.focus();
     },
-    [submitSearchQuery],
+    [selectHistoryQuery],
   );
 
   const { resolvedTheme } = useTheme();
@@ -934,14 +617,10 @@ export default function AppFrame({ children }: AppFrameProps) {
                   className="w-[min(660px,calc(100vw-72px))] mt-[8px] max-h-[500px] h-[500px] rounded-[8px] pointer-events-auto flex flex-col overflow-hidden bg-bg-panel/95 border border-border-primary/50 backdrop-blur-2xl"
                 >
                   <div className="flex gap-[6px] px-[14px] pt-[12px] pb-[6px] shrink-0 overflow-x-auto">
-                    {filterKeys.map((key) => {
+                    {SEARCH_FILTER_KEYS.map((key) => {
                       const label = filterLabels[key];
                       const isActive = activeFilter === key;
-                      let Icon = GridFill;
-                      if (key === "tracks") Icon = Music2Fill;
-                      else if (key === "artists") Icon = User2Fill;
-                      else if (key === "albums") Icon = AlbumFill;
-                      else if (key === "playlists") Icon = PlaylistFill;
+                      const Icon = SEARCH_FILTER_ICONS[key];
 
                       return (
                         <button

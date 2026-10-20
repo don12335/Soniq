@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { isWindowDraggingActive } from "@/shared/hooks";
 import { isEscapeGuarded } from "@/shared/utils/escapeGuard";
+import { isMobileLayout } from "@/shared/platform";
 
 export interface DialogProps {
   open: boolean;
@@ -67,6 +68,9 @@ export default function Dialog({
 
   if (!mounted || typeof document === "undefined") return null;
 
+  // phones: a full-width sheet anchored to the bottom instead of a centered card
+  const mobile = isMobileLayout();
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     pointerStartRef.current = {
       x: e.clientX,
@@ -102,7 +106,7 @@ export default function Dialog({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[199] bg-black/40 backdrop-blur-[2px] rounded-4xl overflow-hidden"
+          className={`fixed inset-0 z-[199] bg-black/40 backdrop-blur-[2px] overflow-hidden ${mobile ? "" : "rounded-4xl"}`}
           style={zIndex ? { zIndex: zIndex - 1 } : undefined}
           onPointerDown={handlePointerDown}
           onClick={handleBackdropClick}
@@ -112,18 +116,22 @@ export default function Dialog({
         <motion.div
           key="dialog"
           data-dialog-container="true"
-          initial={{ opacity: 0, scale: 0.97, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.97, y: 10 }}
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none"
+          initial={mobile ? { y: "100%" } : { opacity: 0, scale: 0.97, y: 10 }}
+          animate={mobile ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+          exit={mobile ? { y: "100%" } : { opacity: 0, scale: 0.97, y: 10 }}
+          transition={{ duration: mobile ? 0.28 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+          className={`fixed inset-0 z-[200] flex justify-center pointer-events-none ${mobile ? "items-end" : "items-center"}`}
           style={zIndex ? { zIndex } : undefined}
         >
           <div
-            className={`soniq-glass-panel pointer-events-auto w-full mx-[16px] max-h-[85vh] flex flex-col rounded-xl border border-border-primary bg-bg-primary overflow-hidden relative ${
-              className || "pt-[16px]"
-            }`}
-            style={{ maxWidth, minHeight, ...(maxHeight ? { maxHeight } : {}) }}
+            className={`soniq-glass-panel pointer-events-auto w-full flex flex-col border border-border-primary bg-bg-primary overflow-hidden relative ${
+              mobile ? "max-h-[90dvh] rounded-t-[20px] border-b-0" : "mx-[16px] max-h-[85vh] rounded-xl"
+            } ${className || "pt-[16px]"}`}
+            style={
+              mobile
+                ? { minHeight, paddingBottom: "var(--safe-bottom)" }
+                : { maxWidth, minHeight, ...(maxHeight ? { maxHeight } : {}) }
+            }
           >
             {children}
           </div>

@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *, .dark, .dark *));
+/* phone layout (iOS/Android shell, or the soniq:layout=mobile dev override) */
+@custom-variant mobile (&:where([data-layout=mobile], [data-layout=mobile] *));
 
 :root {
   --bg-canvas: #e4e4e7;
@@ -254,6 +256,38 @@ img {
     [data-dropdown-menu]
   ):not(.pointer-events-none) {
   -webkit-app-region: no-drag;
+}
+
+/* ── Mobile layout ──
+   env(safe-area-inset-*) needs viewport-fit=cover (index.html). --dev-safe-* lets
+   the mobile layout fake a notch/home indicator in Electron dev. */
+:root {
+  --safe-top: max(env(safe-area-inset-top), var(--dev-safe-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom), var(--dev-safe-bottom, 0px));
+  --m-tab-h: 56px;
+  --m-mini-h: 64px;
+}
+
+[data-layout="mobile"],
+[data-layout="mobile"] body {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+[data-layout="mobile"] body {
+  /* index.html pads the frameless desktop window */
+  padding: 0 !important;
+  background: var(--bg-canvas);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+[data-layout="mobile"] [role="slider"],
+[data-layout="mobile"] [data-drag-handle] {
+  touch-action: none;
 }
 
 .page-transition {

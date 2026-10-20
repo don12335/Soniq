@@ -72,7 +72,7 @@ export default function HomePage() {
 
       <div
         data-window-drag
-        className="sticky top-0 z-20 h-[32px] w-full shrink-0 select-none pointer-events-auto"
+        className="sticky top-0 z-20 h-[32px] w-full shrink-0 select-none pointer-events-auto mobile:hidden"
         style={{ marginBottom: "-32px" }}
         aria-hidden="true"
       />
@@ -86,7 +86,7 @@ export default function HomePage() {
       <div className="relative z-1 w-full pb-[16px]">
             {hasEnoughQuickData && (
               <div className="flex flex-col">
-              <div className="mt-[20px] px-8 flex items-center justify-between">
+              <div className="mt-[20px] px-8 mobile:px-[16px] flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="flex items-center shrink-0">
                     <FlashCircleFill className="w-5 h-5 text-amber-400" />
@@ -100,7 +100,7 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <div className="px-8 mt-[12px] relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="px-8 mobile:px-[16px] mt-[12px] relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   <SongCard
                     title={t("library.liked_songs")}
                     artists={`${likedData.total} ${likedData.total === 1 ? t("library.song") : t("library.songs")}`}

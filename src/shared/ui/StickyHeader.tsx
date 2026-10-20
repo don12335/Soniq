@@ -47,7 +47,7 @@ export function StickyHeader({
       style={{ height: "56px", marginBottom: "-56px" }}
       data-window-drag
     >
-      <div className="relative flex items-center justify-between px-[32px] h-[56px] min-w-0">
+      <div className="relative flex items-center justify-between px-[32px] mobile:px-[16px] h-[56px] min-w-0">
         <div className="flex items-center gap-[8px] min-w-0">
           {showBack && (
             <button

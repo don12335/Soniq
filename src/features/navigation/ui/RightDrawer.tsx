@@ -707,7 +707,7 @@ function RightDrawer({ activeTab, onTabChange, onClose }: RightDrawerProps) {
       <div className="relative shrink-0 z-20">
         <div
           data-window-drag
-          className="relative flex items-center justify-between px-[16px] h-[56px] select-none"
+          className="relative flex items-center justify-between px-[16px] h-[56px] select-none mobile:hidden"
         >
           <div className="flex items-center min-w-0">
             {onClose && (

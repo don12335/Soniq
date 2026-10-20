@@ -1,22 +1,9 @@
-import { useState, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import {
-  SkipNext,
-  SkipPrevious,
-  MusicNote,
-  Repeat,
-  RepeatOne,
-  Shuffle,
-} from "@solar-icons/react";
+import { MusicNote } from "@solar-icons/react";
 import { HeartFill, HeartLine } from "@mingcute/react";
-import {
-  PlayerMorphIcon,
-  ICON_PLAY,
-  ICON_PAUSE,
-} from "./morphPlayerIcons";
 import { usePlayerState } from "../hooks/usePlayerState";
 import { playerEngine } from "../engine/playerEngine";
-import { isRadioContext, nextRepeatMode } from "../engine/radioMode";
 import { useIsTrackLiked, useLikeTrack, useUnlikeTrack } from "@/features/library/hooks";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArtistLink } from "@/features/artist";
@@ -24,39 +11,10 @@ import { useCoverReady, CoverImage } from "@/features/covers";
 import ExplicitBadge from "@/shared/ui/ExplicitBadge";
 import { VolumePicker } from "./VolumePicker";
 import { TimelineSlider } from "./TimelineSlider";
+import { PlaybackControls } from "./PlaybackControls";
+import { getCapabilities } from "@/shared/platform";
 
 import { useTranslation } from "@/languages";
-
-const iconButtonClass =
-  "inline-flex h-[28px] w-[28px] items-center justify-center text-white opacity-70 transition-all duration-150 ease-out hover:opacity-100 active:scale-[0.94] shrink-0 border-none bg-transparent cursor-pointer";
-
-function PlayPauseIcon({ status }: { status: string }) {
-  const loading = status === "loading";
-  const playing = status === "playing";
-  // keep the morph icon mounted through the loading state (spinner overlays
-  // it) — unmounting the icon on "loading" would remount MorphIcon when the
-  // track starts, which skips the play -> pause morph animation.
-  return (
-    <span className="relative flex h-[22px] w-[22px] items-center justify-center">
-      <span
-        className={`absolute inset-0 flex items-center justify-center ${
-          loading ? "opacity-0" : ""
-        } transition-transform ${playing ? "" : "translate-x-[1px]"}`}
-      >
-        <PlayerMorphIcon
-          icon={playing ? ICON_PAUSE : ICON_PLAY}
-          size={22}
-        />
-      </span>
-      {loading && (
-        <span
-          className="absolute h-[18px] w-[18px] animate-spin rounded-full border-[2px] border-current border-t-transparent"
-          aria-label="Loading playback"
-        />
-      )}
-    </span>
-  );
-}
 
 interface PlayerUiElementsProps {
   onDuration?: (duration: number) => void;
@@ -204,68 +162,10 @@ export function PlayerUiElements({
       />
 
       {/* Primary Playback Controls */}
-      <div className="flex items-center gap-[14px]">
-        <button
-          type="button"
-          aria-label={player.shuffle ? t("player.shuffle_on") : t("player.shuffle_off")}
-          onClick={() => playerEngine.setShuffle(!player.shuffle)}
-          className={`${iconButtonClass} ${
-            player.shuffle ? "!text-white !opacity-100" : "!text-white/40"
-          }`}
-        >
-          <Shuffle size={18} weight="Outline" />
-        </button>
+      <PlaybackControls />
 
-        <button
-          type="button"
-          aria-label="Previous track"
-          onClick={() => void playerEngine.skipPrevious()}
-          className={iconButtonClass}
-        >
-          <SkipPrevious size={20} weight="Bold" />
-        </button>
-
-        <button
-          type="button"
-          aria-label={player.status === "playing" ? "Pause" : "Play"}
-          onClick={() => void playerEngine.togglePlayPause()}
-          className="inline-flex h-[36px] w-[36px] items-center justify-center text-white opacity-85 transition-all duration-150 ease-out hover:opacity-100 active:scale-[0.94] shrink-0 border-none bg-transparent cursor-pointer"
-        >
-          <PlayPauseIcon status={player.status} />
-        </button>
-
-        <button
-          type="button"
-          aria-label="Next track"
-          onClick={() => void playerEngine.skipNext()}
-          className={iconButtonClass}
-        >
-          <SkipNext size={20} weight="Bold" />
-        </button>
-
-        <button
-          type="button"
-          aria-label="Repeat"
-          onClick={() =>
-            playerEngine.setRepeat(
-              // radio has no repeat-all: it refills instead of looping
-              nextRepeatMode(player.repeat, isRadioContext(player.playbackContext)),
-            )
-          }
-          className={`${iconButtonClass} ${
-            player.repeat !== "off" ? "!text-white !opacity-100" : "!text-white/40"
-          }`}
-        >
-          {player.repeat === "one" ? (
-            <RepeatOne size={18} />
-          ) : (
-            <Repeat size={18} />
-          )}
-        </button>
-      </div>
-
-      {/* Volume (Compact smooth slider, size sm) */}
-      <VolumePicker className="w-[180px]" size="sm" />
+      {/* Volume (Compact smooth slider, size sm); iOS uses the hardware buttons */}
+      {getCapabilities().volumeControl && <VolumePicker className="w-[180px]" size="sm" />}
     </>
   );
 }
