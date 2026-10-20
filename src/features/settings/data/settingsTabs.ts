@@ -7,9 +7,10 @@ import {
   InfoCircle,
   Database,
   Widget5,
+  User,
 } from "@solar-icons/react";
 
-export type TabId = "Playback" | "Shortcuts" | "Overlay" | "Discord" | "Appearance" | "Customization" | "Audio" | "Storage" | "About";
+export type TabId = "Playback" | "Shortcuts" | "Overlay" | "Discord" | "Appearance" | "Customization" | "Audio" | "Account" | "Storage" | "About";
 
 export const TAB_ICONS: Record<TabId, React.ComponentType<any>> = {
   Playback: Play,
@@ -19,13 +20,14 @@ export const TAB_ICONS: Record<TabId, React.ComponentType<any>> = {
   Appearance: Palette,
   Customization: Gallery,
   Audio: HeadphonesRound,
+  Account: User,
   Storage: Database,
   About: InfoCircle,
 };
 
 export const TAB_GROUPS: { labelKey: "preferences" | "application"; ids: TabId[] }[] = [
   { labelKey: "preferences", ids: ["Playback", "Shortcuts", "Overlay", "Discord", "Audio", "Appearance", "Customization"] },
-  { labelKey: "application", ids: ["Storage", "About"] },
+  { labelKey: "application", ids: ["Account", "Storage", "About"] },
 ];
 
 
@@ -76,6 +78,7 @@ export const SETTING_ITEMS: { tabId: TabId; titleKey: string; descKey?: string }
   { tabId: "Audio", titleKey: "settings.connection.checks_title" },
 
   // Storage
+  { tabId: "Account", titleKey: "settings.account.title", descKey: "settings.account.intro" },
   { tabId: "Storage", titleKey: "settings.storage.title", descKey: "settings.storage.description" },
   { tabId: "Storage", titleKey: "settings.storage.usage_title" },
   { tabId: "Storage", titleKey: "settings.storage.backup_title", descKey: "settings.storage.backup_description" },

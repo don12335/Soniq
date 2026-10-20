@@ -28,7 +28,8 @@ export type AuthState = {
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
-  // no accounts in this build: everyone uses the app with a local library
+  // The legacy Liner account API remains disabled. Soniq cloud accounts use
+  // src/shared/account and keep the local library as the offline source.
   status: "anonymous",
   user: null,
   initialize: async () => {

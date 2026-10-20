@@ -35,6 +35,7 @@ function readCache(): RecommendationCache {
 function writeCache(patch: RecommendationCache): void {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ ...readCache(), ...patch }));
+    window.dispatchEvent(new Event("soniq:sync-local-change"));
   } catch {
     // Storage is optional; the current recommendations still render.
   }
@@ -59,7 +60,10 @@ export function isMixRefreshDue(now = Date.now()): boolean {
 }
 
 export function clearRecommendationCache(): void {
-  try { localStorage.removeItem(CACHE_KEY); } catch { /* storage unavailable */ }
+  try {
+    localStorage.removeItem(CACHE_KEY);
+    window.dispatchEvent(new Event("soniq:sync-local-change"));
+  } catch { /* storage unavailable */ }
 }
 
 function historyTracks(): Track[] {

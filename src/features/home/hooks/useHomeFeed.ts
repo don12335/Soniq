@@ -157,12 +157,19 @@ export function useRecommendations() {
     });
     const timer = window.setInterval(tick, 30_000);
     window.addEventListener("focus", tick);
+    const fromCloud = () => {
+      const cached = readCachedRecommendations();
+      if (cached) { rowsRef.current = cached; setRows(cached); }
+      tick();
+    };
+    window.addEventListener("soniq:recommendations-changed", fromCloud);
     return () => {
       active = false;
       unsubscribe();
       window.clearTimeout(historyTimer);
       window.clearInterval(timer);
       window.removeEventListener("focus", tick);
+      window.removeEventListener("soniq:recommendations-changed", fromCloud);
     };
   }, []);
 

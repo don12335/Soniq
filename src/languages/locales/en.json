@@ -711,6 +711,32 @@
         "success": "Library cache cleared"
       }
     },
+    "account": {
+      "title": "Cloud account",
+      "description": "Guest mode, number account, and sync across devices.",
+      "intro": "Guest data stays on this device. Sign in to sync likes, playlists, listening history, recommendations, and basic settings. Local data remains available; cached audio is not uploaded.",
+      "server": "Server HTTPS address",
+      "save": "Save",
+      "server_saved": "Server address saved.",
+      "secret_warning": "Write down these 24 digits. They are your login password and cannot be shown again after you close the app.",
+      "copy": "Copy number",
+      "saved": "I've saved it",
+      "mode": "Account mode · ID {id}…",
+      "syncing": "Syncing…",
+      "last_sync": "Last synced: {time}",
+      "waiting": "Waiting to sync",
+      "sync_failed": "Sync failed: {error}",
+      "sync_now": "Sync now",
+      "logout": "Sign out and keep local data",
+      "email": "Email (optional; account recovery is not available yet)",
+      "email_placeholder": "You can leave this blank",
+      "save_email": "Save email",
+      "email_saved": "Email saved but not verified.",
+      "guest": "You are using guest mode. Email is not required to create an account.",
+      "create": "Create number account",
+      "login_placeholder": "Enter your 24-digit account number",
+      "login": "Sign in"
+    },
     "storage": {
       "title": "Cache & Storage",
       "backup_title": "Move data between devices",

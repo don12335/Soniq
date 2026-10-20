@@ -711,6 +711,32 @@
         "success": "已清除音樂庫快取"
       }
     },
+    "account": {
+      "title": "雲端帳號",
+      "description": "訪客模式、數字帳號與跨裝置同步。",
+      "intro": "訪客資料保存在這台裝置。登入後會同步喜歡、歌單、播放紀錄、推薦和基本設定；本機資料仍會保留，音檔快取不會上傳。",
+      "server": "伺服器 HTTPS 位址",
+      "save": "儲存",
+      "server_saved": "伺服器位址已儲存。",
+      "secret_warning": "請先抄下這組 24 位數字。它就是登入密碼，關閉後無法再次顯示。",
+      "copy": "複製數字",
+      "saved": "我已保存",
+      "mode": "帳號模式 · ID {id}…",
+      "syncing": "同步中…",
+      "last_sync": "上次同步：{time}",
+      "waiting": "等待同步",
+      "sync_failed": "同步失敗：{error}",
+      "sync_now": "立即同步",
+      "logout": "登出並保留本機資料",
+      "email": "Email（選填，目前不提供找回帳號）",
+      "email_placeholder": "不填也能使用",
+      "save_email": "儲存 Email",
+      "email_saved": "Email 已儲存，尚未驗證。",
+      "guest": "目前為訪客模式。建立帳號不需要 Email。",
+      "create": "建立數字帳號",
+      "login_placeholder": "輸入 24 位數字帳號",
+      "login": "登入"
+    },
     "storage": {
       "title": "快取與儲存空間",
       "backup_title": "在裝置之間搬移資料",

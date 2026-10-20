@@ -8,9 +8,8 @@ import type {
   UserPlaylistItem,
 } from "../contracts";
 
-// Local-only library used while nobody is signed in. Mirrors the response
-// shapes of the /v1/me/library and /v1/me/playlists endpoints so the rest of
-// the app can't tell the difference.
+// Local library used in guest mode and as the offline copy for cloud accounts.
+// Its response shapes mirror the older library API used by the rest of the app.
 
 export type CollectionType = "albums" | "artists" | "playlists";
 
@@ -57,6 +56,7 @@ function read(): GuestLibraryData {
 function write(data: GuestLibraryData): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  window.dispatchEvent(new Event("soniq:sync-local-change"));
 }
 
 function update<T>(fn: (data: GuestLibraryData) => T): T {

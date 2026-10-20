@@ -37,6 +37,7 @@ export default function SettingsModal() {
       Appearance: "settings.theme.title",
       Customization: "settings.tabs.customization",
       Audio: "settings.tabs.audio",
+      Account: "settings.account.title",
       Storage: "settings.tabs.storage",
       About: "settings.tabs.about",
     };
@@ -49,6 +50,7 @@ export default function SettingsModal() {
       Appearance: "settings.theme.description",
       Customization: "settings.customization.description",
       Audio: "settings.audio.description",
+      Account: "settings.account.description",
       Storage: "settings.storage.description",
       About: "settings.about.tagline",
     };

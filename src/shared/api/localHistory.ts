@@ -29,6 +29,7 @@ function write(items: PlaybackHistoryItem[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_ENTRIES)));
     window.dispatchEvent(new Event(HISTORY_CHANGED_EVENT));
+    window.dispatchEvent(new Event("soniq:sync-local-change"));
   } catch {
     // storage full: history is a convenience, never block playback on it
   }
@@ -111,5 +112,6 @@ export function clearHistory(): void {
   if (typeof window !== "undefined") {
     localStorage.removeItem(STORAGE_KEY);
     window.dispatchEvent(new Event(HISTORY_CHANGED_EVENT));
+    window.dispatchEvent(new Event("soniq:sync-local-change"));
   }
 }

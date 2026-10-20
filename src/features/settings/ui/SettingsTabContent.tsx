@@ -11,6 +11,7 @@ import {
   DiscordTab,
 } from "./tabs";
 import type { TabId } from "../data/settingsTabs";
+import CloudAccountSection from "./tabs/CloudAccountSection";
 
 export function useSettingsTabText() {
   const { t } = useTranslation();
@@ -23,6 +24,7 @@ export function useSettingsTabText() {
     Appearance: t("settings.tabs.appearance"),
     Customization: t("settings.tabs.customization") || "Customization",
     Audio: t("settings.tabs.audio"),
+    Account: t("settings.account.title"),
     Storage: t("settings.tabs.storage"),
     About: t("settings.tabs.about"),
   };
@@ -35,6 +37,7 @@ export function useSettingsTabText() {
     Appearance: t("settings.theme.description"),
     Customization: t("settings.customization.description") || "Window background wallpaper, transparency and block blur effects.",
     Audio: t("settings.audio.description"),
+    Account: t("settings.account.description"),
     Storage: t("settings.storage.description"),
     About: t("settings.about.tagline"),
   };
@@ -52,6 +55,7 @@ export function SettingsTabContent({ tabId: activeTab, searchQuery = "" }: { tab
       {activeTab === "Appearance" && <AppearanceTab searchQuery={searchQuery} />}
       {activeTab === "Customization" && <CustomizationTab searchQuery={searchQuery} />}
       {activeTab === "Audio" && <AudioTab searchQuery={searchQuery} />}
+      {activeTab === "Account" && <CloudAccountSection />}
       {activeTab === "Storage" && <StorageTab searchQuery={searchQuery} />}
       {activeTab === "About" && <AboutTab searchQuery={searchQuery} />}
     </>
