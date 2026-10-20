@@ -1,8 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@capacitor/core", () => ({ registerPlugin: () => ({ request: vi.fn() }) }));
+const mocks = vi.hoisted(() => ({ soniqRequest: vi.fn(), capacitorRequest: vi.fn() }));
 
-import { createNativeFetch, shouldUseNative, type NativeHttpRequest, type NativeHttpResponse } from "./nativeFetch";
+vi.mock("@capacitor/core", () => ({
+  registerPlugin: () => ({ request: mocks.soniqRequest }),
+  CapacitorHttp: { request: mocks.capacitorRequest },
+}));
+
+import {
+  createNativeFetch,
+  installNativeFetch,
+  requestViaCapacitorHttp,
+  shouldUseNative,
+  type NativeHttpRequest,
+  type NativeHttpResponse,
+} from "./nativeFetch";
 
 function base64(text: string): string {
   return btoa(unescape(encodeURIComponent(text)));
@@ -98,5 +110,59 @@ describe("native fetch", () => {
   it("maps native failures to TypeError like browser fetch", async () => {
     const { fetch } = setup(new Error("The Internet connection appears to be offline."));
     await expect(fetch("https://lrclib.net/x")).rejects.toBeInstanceOf(TypeError);
+  });
+
+  it("includes the native error in the message", async () => {
+    const { fetch } = setup(new Error("The request timed out."));
+    await expect(fetch("https://lrclib.net/x")).rejects.toThrow("The request timed out.");
+  });
+});
+
+describe("CapacitorHttp fallback", () => {
+  beforeEach(() => {
+    mocks.soniqRequest.mockReset();
+    mocks.capacitorRequest.mockReset();
+  });
+
+  it("re-encodes bodies CapacitorHttp already parsed as JSON", async () => {
+    mocks.capacitorRequest.mockResolvedValueOnce({
+      status: 200,
+      headers: { "content-type": "application/json" },
+      url: "https://www.youtube.com/youtubei/v1/visitor_id",
+      data: { responseContext: { visitorData: "CgtABC" } },
+    });
+    const res = await requestViaCapacitorHttp({ url: "https://www.youtube.com/youtubei/v1/visitor_id", method: "POST", headers: {}, body: btoa("{}"), timeout: 1000 });
+    expect(JSON.parse(atob(res.data))).toEqual({ responseContext: { visitorData: "CgtABC" } });
+    const options = mocks.capacitorRequest.mock.calls[0][0];
+    expect(options.dataType).toBe("file");
+    expect(options.headers["Content-Type"]).toBe("application/octet-stream");
+  });
+
+  it("switches to CapacitorHttp when the SoniqHttp plugin fails", async () => {
+    const original = window.fetch;
+    try {
+      mocks.soniqRequest.mockRejectedValue(Object.assign(new Error('"SoniqHttp" plugin is not implemented on ios'), { code: "UNIMPLEMENTED" }));
+      mocks.capacitorRequest.mockResolvedValue({ status: 200, headers: { "content-type": "text/plain" }, url: "https://lrclib.net/x", data: btoa("ok") });
+      installNativeFetch();
+      expect(await (await window.fetch("https://lrclib.net/x")).text()).toBe("ok");
+      expect(await (await window.fetch("https://lrclib.net/y")).text()).toBe("ok");
+      expect(mocks.soniqRequest).toHaveBeenCalledTimes(1);
+    } finally {
+      window.fetch = original;
+    }
+  });
+
+  it("keeps the plugin error when CapacitorHttp fails too", async () => {
+    const original = window.fetch;
+    try {
+      mocks.soniqRequest.mockRejectedValue(new Error("offline"));
+      mocks.capacitorRequest.mockRejectedValue(new Error("also offline"));
+      installNativeFetch();
+      await expect(window.fetch("https://lrclib.net/x")).rejects.toThrow("offline");
+      await expect(window.fetch("https://lrclib.net/x")).rejects.toThrow("offline");
+      expect(mocks.soniqRequest).toHaveBeenCalledTimes(2);
+    } finally {
+      window.fetch = original;
+    }
   });
 });

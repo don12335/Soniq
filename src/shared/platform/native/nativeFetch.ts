@@ -1,5 +1,6 @@
-import { registerPlugin } from "@capacitor/core";
+import { CapacitorHttp, registerPlugin } from "@capacitor/core";
 import { applyHostHeaderRules } from "../headerRules";
+import { log } from "@/shared/utils/logger";
 
 export interface NativeHttpRequest {
   url: string;
@@ -109,7 +110,9 @@ export function createNativeFetch(webFetch: typeof fetch, nativeRequest: NativeR
       );
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") throw error;
-      throw new TypeError("Failed to fetch", { cause: error });
+      const reason = error instanceof Error ? error.message : String(error);
+      log("red", "http", `${method} ${request.url.slice(0, 80)} failed: ${reason}`);
+      throw new TypeError(`Failed to fetch (${reason})`, { cause: error });
     }
 
     const responseBody =
@@ -123,7 +126,59 @@ export function createNativeFetch(webFetch: typeof fetch, nativeRequest: NativeR
   };
 }
 
+function utf8ToBase64(text: string): string {
+  return bytesToBase64(new TextEncoder().encode(text));
+}
+
+// Fallback for a shell without SoniqHttp. CapacitorHttp parses JSON-typed responses itself,
+// so their bodies come back as objects (or are lost when they aren't valid JSON).
+export async function requestViaCapacitorHttp(options: NativeHttpRequest): Promise<NativeHttpResponse> {
+  const headers = { ...options.headers };
+  if (options.body && !Object.keys(headers).some((name) => name.toLowerCase() === "content-type")) {
+    // iOS only sends a body when Content-Type is set
+    headers["Content-Type"] = "application/octet-stream";
+  }
+  const res = await CapacitorHttp.request({
+    url: options.url,
+    method: options.method,
+    headers,
+    data: options.body,
+    dataType: options.body ? "file" : undefined,
+    responseType: "arraybuffer",
+    connectTimeout: options.timeout,
+    readTimeout: options.timeout,
+  });
+  const resHeaders = (res.headers ?? {}) as Record<string, string>;
+  const isJson = (resHeaders["content-type"] ?? "").toLowerCase().includes("application/json");
+  const data =
+    typeof res.data !== "string"
+      ? utf8ToBase64(JSON.stringify(res.data ?? null))
+      : isJson
+        ? utf8ToBase64(res.data)
+        : res.data;
+  return { status: res.status, headers: resHeaders, url: res.url, data };
+}
+
 export function installNativeFetch(): void {
   const webFetch = window.fetch.bind(window);
-  window.fetch = createNativeFetch(webFetch, (options) => SoniqHttp.request(options));
+  let useCapacitorHttp = false;
+  window.fetch = createNativeFetch(webFetch, async (options) => {
+    if (useCapacitorHttp) return requestViaCapacitorHttp(options);
+    try {
+      return await SoniqHttp.request(options);
+    } catch (soniqError) {
+      // a missing or broken plugin must not take all networking down: retry through CapacitorHttp,
+      // and if that works, stop using the plugin
+      const reason = soniqError instanceof Error ? soniqError.message : String(soniqError);
+      let fallback: NativeHttpResponse;
+      try {
+        fallback = await requestViaCapacitorHttp(options);
+      } catch {
+        throw soniqError;
+      }
+      useCapacitorHttp = true;
+      log("yellow", "http", `SoniqHttp failed (${reason}), using CapacitorHttp from now on`);
+      return fallback;
+    }
+  });
 }

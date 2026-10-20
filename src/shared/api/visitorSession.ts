@@ -29,6 +29,45 @@ let pendingFetch: Promise<string> | null = null;
 
 const SESSION_TTL_MS = 5.5 * 60 * 60 * 1000; // 5.5 hours
 
+const USER_AGENT =
+  typeof navigator !== "undefined"
+    ? navigator.userAgent
+    : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+async function fetchFromServiceWorkerData(): Promise<string> {
+  const res = await fetch("https://www.youtube.com/sw.js_data", {
+    headers: { "user-agent": USER_AGENT },
+  });
+  if (!res.ok) {
+    throw new Error(`sw.js_data returned ${res.status}`);
+  }
+  const visitorData = parseVisitorData(await res.text());
+  if (!visitorData) {
+    throw new Error("Could not parse visitorData from sw.js_data");
+  }
+  return visitorData;
+}
+
+// Plain-JSON fallback. sw.js_data is ")]}'"-prefixed JSON, which some native HTTP layers
+// (Capacitor's CapacitorHttp on iOS) can't hand back intact.
+async function fetchFromVisitorIdEndpoint(): Promise<string> {
+  const res = await fetch("https://www.youtube.com/youtubei/v1/visitor_id?prettyPrint=false", {
+    method: "POST",
+    headers: { "content-type": "application/json", "user-agent": USER_AGENT },
+    body: JSON.stringify({ context: { client: { clientName: "WEB", clientVersion: "2.20260101.00.00", hl: "en" } } }),
+  });
+  if (!res.ok) {
+    throw new Error(`visitor_id returned ${res.status}`);
+  }
+  const visitorData = parseVisitorData(
+    String(((await res.json()) as { responseContext?: { visitorData?: unknown } })?.responseContext?.visitorData ?? ""),
+  );
+  if (!visitorData) {
+    throw new Error("visitor_id returned no visitorData");
+  }
+  return visitorData;
+}
+
 export function resetClientVisitorData(): void {
   cachedSession = null;
   try { localStorage.removeItem(STORAGE_KEY); } catch { /* storage may be unavailable */ }
@@ -46,23 +85,12 @@ export async function getClientVisitorData(): Promise<string> {
 
   pendingFetch = (async () => {
     try {
-      const res = await fetch("https://www.youtube.com/sw.js_data", {
-        headers: {
-          "user-agent":
-            typeof navigator !== "undefined"
-              ? navigator.userAgent
-              : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error(`sw.js_data returned ${res.status}`);
-      }
-
-      const text = await res.text();
-      const visitorData = parseVisitorData(text);
-      if (!visitorData) {
-        throw new Error("Could not parse visitorData from sw.js_data");
+      let visitorData: string;
+      try {
+        visitorData = await fetchFromServiceWorkerData();
+      } catch (swError) {
+        log("yellow", "visitor", `sw.js_data failed (${swError instanceof Error ? swError.message : String(swError)}), trying visitor_id`);
+        visitorData = await fetchFromVisitorIdEndpoint();
       }
 
       cachedSession = {
