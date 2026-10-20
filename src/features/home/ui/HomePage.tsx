@@ -35,7 +35,10 @@ export default function HomePage() {
   const { rows: recommendations, isRefreshingBecause, refreshBecause } = useRecommendations();
   const forYou = recommendations.find((row) => !row.seed);
   const becauseYouListened = recommendations.find((row) => row.seed);
-  const { data: charts, isLoading: chartsLoading } = useHomeCharts(!hasPlayedTrack);
+  // Keep discovery visible while the first personalized radio rows are loading
+  // (or if YouTube cannot supply enough tracks for them).
+  const showCharts = !hasPlayedTrack || (!forYou && !becauseYouListened);
+  const { data: charts, isLoading: chartsLoading } = useHomeCharts(showCharts);
 
   const chartTracks = useMemo(() => asTrackItems(charts.tracks), [charts.tracks]);
   const chartArtists = useMemo(
@@ -211,10 +214,10 @@ export default function HomePage() {
           )}
 
           {/* Trending in Taiwan (YouTube Music daily chart) */}
-          {!hasPlayedTrack && chartsLoading && chartTracks.length === 0 && (
+          {showCharts && chartsLoading && chartTracks.length === 0 && (
             <SectionSkeleton titleWidth="w-[190px]" />
           )}
-          {!hasPlayedTrack && chartTracks.length > 0 && (
+          {showCharts && chartTracks.length > 0 && (
             <PopularTracksSection
               title={t("home.trendingInTaiwan")}
               subtitle={charts.playlist?.title}
@@ -226,7 +229,7 @@ export default function HomePage() {
           )}
 
           {/* Top artists in Taiwan */}
-          {!hasPlayedTrack && chartArtists.length > 0 && (
+          {showCharts && chartArtists.length > 0 && (
             <PopularTracksSection
               title={t("home.topArtists")}
               icon={<MicFill className="w-5 h-5 text-rose-400" />}

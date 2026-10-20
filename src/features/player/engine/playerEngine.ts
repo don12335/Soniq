@@ -99,6 +99,7 @@ class PlaybackTelemetryTracker {
   private lastActivityTime: number = 0;
   private trackDurationMs = 0;
   private playedDurationMs = 0;
+  private previewRecorded = false;
   private lastTickTime: number | null = null;
   private completed = false;
   private loopCount = 0;
@@ -132,6 +133,7 @@ class PlaybackTelemetryTracker {
     this.activeTrack = track;
     this.trackDurationMs = track.durationMs ?? 0;
     this.playedDurationMs = 0;
+    this.previewRecorded = false;
     this.lastTickTime = null;
     this.completed = false;
     this.loopCount = 0;
@@ -156,6 +158,7 @@ class PlaybackTelemetryTracker {
       }
       this.lastTickTime = null;
     }
+    this.recordPreviewIfReady();
   }
 
   public onTick(isPlaying: boolean) {
@@ -172,6 +175,7 @@ class PlaybackTelemetryTracker {
         }
       }
       this.lastTickTime = now;
+      this.recordPreviewIfReady();
     } else {
       this.lastTickTime = null;
     }
@@ -195,14 +199,36 @@ class PlaybackTelemetryTracker {
     if (!this.activeTrackId) return;
     this.onPausedOrStopped();
 
-    const durationMs = this.trackDurationMs > 0 ? this.trackDurationMs : this.playedDurationMs;
-    const rawRate = durationMs > 0 ? this.playedDurationMs / durationMs : this.completed ? 1.0 : 0.0;
-    const completionRate = Math.min(1.0, Math.max(0.0, rawRate));
     const isSkipped = !this.completed && this.playedDurationMs < 30000;
 
     if (this.playedDurationMs >= 3000 || this.completed) {
-      const snap = this.activeTrack;
-      const artistsList = snap?.artistList?.length
+      this.reportCurrentTrack(isSkipped);
+    }
+
+    this.activeTrackId = null;
+    this.activeTrack = null;
+    this.playbackSessionId = "";
+    this.lastTickTime = null;
+    this.playedDurationMs = 0;
+    this.previewRecorded = false;
+    this.completed = false;
+    this.loopCount = 0;
+    this.hasSeekBackward = false;
+  }
+
+  private recordPreviewIfReady() {
+    if (!this.activeTrackId || this.previewRecorded || this.playedDurationMs < 10_000) return;
+    this.previewRecorded = true;
+    this.reportCurrentTrack(false);
+  }
+
+  private reportCurrentTrack(isSkipped: boolean) {
+    if (!this.activeTrackId) return;
+    const durationMs = this.trackDurationMs > 0 ? this.trackDurationMs : this.playedDurationMs;
+    const rawRate = durationMs > 0 ? this.playedDurationMs / durationMs : this.completed ? 1.0 : 0.0;
+    const completionRate = Math.min(1.0, Math.max(0.0, rawRate));
+    const snap = this.activeTrack;
+    const artistsList = snap?.artistList?.length
         ? snap.artistList.map((a) => ({ id: a.id || "unknown", name: a.name }))
         : (snap?.artists
             ? snap.artists.split(",").map((name) => ({ id: snap?.artistId || "unknown", name: name.trim() }))
@@ -229,16 +255,6 @@ class PlaybackTelemetryTracker {
         hasSeekBackward: this.hasSeekBackward,
         context: this.context,
       });
-    }
-
-    this.activeTrackId = null;
-    this.activeTrack = null;
-    this.playbackSessionId = "";
-    this.lastTickTime = null;
-    this.playedDurationMs = 0;
-    this.completed = false;
-    this.loopCount = 0;
-    this.hasSeekBackward = false;
   }
 
   private sendEvent(payload: RecordPlaybackEventRequest) {

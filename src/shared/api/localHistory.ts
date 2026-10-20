@@ -49,7 +49,7 @@ export function recordPlayback(event: RecordPlaybackEventRequest): void {
   if (!event.completed && event.playedDurationMs < MIN_PLAYED_MS) return;
 
   const item: PlaybackHistoryItem = {
-    id: `${event.playbackSessionId || event.trackId}-${Date.now()}`,
+    id: event.playbackSessionId || `${event.trackId}-${Date.now()}`,
     playbackSessionId: event.playbackSessionId,
     listeningSessionId: event.listeningSessionId,
     track: event.trackSnapshot,
@@ -62,7 +62,9 @@ export function recordPlayback(event: RecordPlaybackEventRequest): void {
     ...(event.context ? { context: event.context } : {}),
     listenedAt: new Date().toISOString(),
   };
-  write([item, ...read()]);
+  // A playing track is recorded once it reaches ten seconds, then updated
+  // when it ends. Keep one entry and one recommendation seed per play.
+  write([item, ...read().filter((existing) => existing.id !== item.id)]);
 }
 
 // newest first; the cursor is the index to continue from
