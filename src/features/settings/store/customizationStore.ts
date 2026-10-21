@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { useTheme } from "next-themes";
 import { debouncedStorage } from "@/shared/utils/storage";
 import ambientImage from "@/assets/ambient/soniq-ambient.webp";
+import { isMobileLayout } from "@/shared/platform/layout";
 
 export interface BlockCustomization {
   opacity: number;
@@ -318,8 +319,9 @@ export function useIsContentTransparent(): boolean {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme ? resolvedTheme === "dark" : getIsDarkTheme();
   const backgroundImage = useCustomizationStore(selectEffectiveBackground);
+  const gradientThemeEnabled = useCustomizationStore((state) => state.gradientThemeEnabled);
   const opacity = useCustomizationStore(selectBlockConfig("contentView")).opacity;
-  return Boolean(isDark && backgroundImage && opacity < 100);
+  return Boolean(isDark && ((isMobileLayout() && gradientThemeEnabled) || (backgroundImage && opacity < 100)));
 }
 
 // --- effective background ------------------------------------------------------

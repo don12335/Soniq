@@ -39,7 +39,7 @@ export default function MobileSearchPage() {
           {t("common.search")}
         </h1>
         <form
-          className="flex h-[44px] items-center gap-[10px] rounded-[12px] bg-border-alpha-14 px-[12px]"
+          className="soniq-mobile-surface flex h-[44px] items-center gap-[10px] rounded-[12px] bg-border-alpha-14 px-[12px]"
           onSubmit={(e) => {
             e.preventDefault();
             submitSearchQuery(searchQuery);
@@ -89,8 +89,9 @@ export default function MobileSearchPage() {
                 <button
                   key={key}
                   type="button"
+                  data-active={isActive ? "true" : undefined}
                   onClick={() => setActiveFilter(key)}
-                  className={`flex h-[34px] shrink-0 items-center gap-[6px] rounded-full border-none px-[14px] text-[14px] cursor-pointer select-none transition-colors ${
+                  className={`soniq-mobile-filter flex h-[34px] shrink-0 items-center gap-[6px] rounded-full border-none px-[14px] text-[14px] cursor-pointer select-none transition-colors ${
                     isActive ? "bg-text-primary text-bg-primary font-[600]" : "bg-border-alpha-14 text-text-secondary"
                   }`}
                   style={font}

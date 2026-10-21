@@ -36,7 +36,7 @@ export function MobileSettingsPage() {
             <p className="m-0 px-[4px] pb-[8px] text-[13px] font-[500] uppercase tracking-[0.02em] text-text-tertiary" style={font}>
               {t(`settings.groups.${group.labelKey}`)}
             </p>
-            <div className="overflow-hidden rounded-[14px] bg-bg-elevated">
+            <div className="soniq-mobile-surface overflow-hidden rounded-[14px] bg-bg-elevated">
               {group.ids.map((id, index) => {
                 const Icon = TAB_ICONS[id];
                 return (
@@ -95,7 +95,7 @@ export function MobileSettingsTabPage() {
         <p className="m-0 mb-[16px] mt-[4px] text-[14px] leading-snug text-text-tertiary" style={font}>
           {tabDescriptions[tabId]}
         </p>
-        <div className="flex flex-col">
+        <div className="soniq-mobile-settings-panel flex flex-col">
           <SettingsTabContent tabId={tabId} />
         </div>
       </div>

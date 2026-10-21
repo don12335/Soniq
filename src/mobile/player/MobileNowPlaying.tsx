@@ -158,7 +158,7 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
     <motion.div
       key="mobile-now-playing"
       data-theme="dark"
-      className="dark fixed inset-0 z-[70] overflow-hidden bg-black text-white will-change-transform"
+      className="soniq-mobile-now-playing dark fixed inset-0 z-[70] overflow-hidden bg-black text-white will-change-transform"
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
@@ -179,7 +179,7 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
           />
         )}
         {effectsReady && <KawarpWrapper src={kawarpSrc} />}
-        <div className="absolute inset-0 bg-black/45" />
+        <div className="soniq-player-scrim absolute inset-0 bg-black/45" />
       </div>
 
       <div

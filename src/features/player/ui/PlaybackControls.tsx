@@ -80,7 +80,7 @@ export function PlaybackControls({ size = "md" }: { size?: PlaybackControlsSize 
         type="button"
         aria-label={player.status === "playing" ? "Pause" : "Play"}
         onClick={() => void playerEngine.togglePlayPause()}
-        className="inline-flex items-center justify-center text-white opacity-85 transition-all duration-150 ease-out hover:opacity-100 active:scale-[0.94] shrink-0 border-none bg-transparent cursor-pointer"
+        className="soniq-play-primary inline-flex items-center justify-center text-white opacity-85 transition-all duration-150 ease-out hover:opacity-100 active:scale-[0.94] shrink-0 border-none bg-transparent cursor-pointer"
         style={{ width: dims.play, height: dims.play }}
       >
         <PlayPauseIcon status={player.status} size={dims.playIcon} spinnerSize={dims.spinner} />

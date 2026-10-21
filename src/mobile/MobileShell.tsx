@@ -140,7 +140,7 @@ export default function MobileShell() {
         data-custom-bg={hasVisualBg ? "true" : undefined}
         className="relative min-h-0 flex-1"
         style={{ ...(showGradient
-          ? { background: "rgba(9, 10, 24, 0.34)" }
+          ? { ...mainStyle, background: "rgba(9, 10, 24, 0.34)", boxShadow: undefined }
           : hasCustomBg ? { ...mainStyle, boxShadow: undefined } : {}), paddingBottom: bottomReserve }}
       >
         <div ref={mainScrollRef} className={`h-full overflow-x-hidden overflow-y-auto ${isSearch ? "hidden" : ""}`}>

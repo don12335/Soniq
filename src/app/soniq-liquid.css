@@ -161,6 +161,83 @@
     linear-gradient(170deg, #080b1a 0%, #141432 65%, #271548 100%);
 }
 
+/* The phone shell has its own navigation and player chrome. Keep these in the
+   same liquid palette as the desktop sidebar, panels, controls and progress. */
+:root[data-layout="mobile"][data-soniq-style="gradient"] {
+  --accent-primary: #9987ff;
+  --accent-secondary: #b8a7ff;
+  --accent-tertiary: #d6caff;
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-tabbar {
+  background: linear-gradient(180deg, rgba(34, 35, 68, 0.78), rgba(12, 14, 31, 0.88)) !important;
+  border-color: rgba(206, 198, 255, 0.18) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 -10px 28px rgba(15, 10, 45, 0.18);
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-tab[aria-current="page"] {
+  color: #ebe6ff !important;
+  text-shadow: 0 0 12px var(--soniq-glow);
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-tab[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 32px;
+  height: 2px;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  background: var(--soniq-grad);
+  box-shadow: 0 0 12px var(--soniq-glow);
+  pointer-events: none;
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-miniplayer {
+  background: linear-gradient(145deg, rgba(51, 50, 91, 0.88), rgba(19, 21, 43, 0.92)) !important;
+  box-shadow: inset 0 0 0 1px rgba(224, 216, 255, 0.16), 0 10px 32px rgba(12, 7, 44, 0.42), 0 0 24px -14px var(--soniq-glow);
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-surface {
+  background: linear-gradient(155deg, rgba(63, 58, 108, 0.46), rgba(21, 23, 48, 0.62)) !important;
+  box-shadow: inset 0 0 0 1px rgba(220, 210, 255, 0.12);
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-settings-panel {
+  padding: 0 12px;
+  border-radius: 14px;
+  background: linear-gradient(155deg, rgba(63, 58, 108, 0.34), rgba(21, 23, 48, 0.46));
+  box-shadow: inset 0 0 0 1px rgba(220, 210, 255, 0.10);
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-filter {
+  background: rgba(205, 195, 255, 0.10) !important;
+  color: rgba(255, 255, 255, 0.76) !important;
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-filter[data-active="true"] {
+  background: var(--soniq-grad) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px -5px var(--soniq-glow);
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-sheet {
+  background: linear-gradient(160deg, rgba(41, 39, 78, 0.96), rgba(15, 16, 36, 0.98)) !important;
+  box-shadow: inset 0 1px 0 rgba(229, 221, 255, 0.14), 0 -16px 44px rgba(5, 4, 22, 0.50);
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-play-primary {
+  background: radial-gradient(circle at 30% 20%, #a3a9ff, #7665ed 60%, #5637bd) !important;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), 0 8px 26px -4px var(--soniq-glow);
+  opacity: 1 !important;
+}
+
+:root[data-layout="mobile"][data-soniq-style="gradient"] .soniq-mobile-now-playing .soniq-player-scrim {
+  background: linear-gradient(180deg, rgba(15, 12, 40, 0.58), rgba(5, 5, 18, 0.40) 48%, rgba(36, 18, 78, 0.68)) !important;
+}
+
 /* ---- liquid chrome for the highlighted pills (active tab, floating add) ---- */
 
 [data-soniq-style="gradient"] .apple-glass-prominent {

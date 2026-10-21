@@ -24,7 +24,7 @@ export default function MobileMiniPlayer({ onOpen }: MobileMiniPlayerProps) {
 
   return (
     <motion.div
-      className="relative mx-[8px] flex items-center gap-[10px] overflow-hidden rounded-[14px] bg-bg-elevated/95 pl-[8px] pr-[4px] backdrop-blur-xl cursor-pointer select-none"
+      className="soniq-mobile-miniplayer relative mx-[8px] flex items-center gap-[10px] overflow-hidden rounded-[14px] bg-bg-elevated/95 pl-[8px] pr-[4px] backdrop-blur-xl cursor-pointer select-none"
       style={{ height: "var(--m-mini-h)" }}
       drag="y"
       dragConstraints={{ top: 0, bottom: 0 }}
@@ -77,7 +77,7 @@ export default function MobileMiniPlayer({ onOpen }: MobileMiniPlayerProps) {
       </button>
 
       <div className="pointer-events-none absolute inset-x-[10px] bottom-0 h-[2px] overflow-hidden rounded-full bg-border-alpha-14">
-        <div className="h-full bg-text-primary/80" style={{ width: `${progress * 100}%` }} />
+        <div className="soniq-fill h-full bg-text-primary/80" style={{ width: `${progress * 100}%` }} />
       </div>
     </motion.div>
   );
