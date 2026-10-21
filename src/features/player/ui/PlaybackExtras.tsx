@@ -1,6 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { ClockCircle, Soundwave } from "@solar-icons/react";
 import DropdownMenu from "@/shared/ui/DropdownMenu";
+import type { DropdownMenuItem } from "@/shared/ui/DropdownMenu";
 import { useTranslation } from "@/languages";
 import { usePlayerStore } from "../store/playerStore";
 import {
@@ -9,7 +10,7 @@ import {
 
 const buttonClass = "inline-flex items-center justify-center gap-2 border-none bg-white/5 text-white/65 hover:bg-white/10 hover:text-white active:scale-[0.96] cursor-pointer transition-colors";
 
-export function SleepTimerButton({ compact = false }: { compact?: boolean }) {
+export function useSleepTimerMenu(): { label: string; items: DropdownMenuItem[]; active: boolean } {
   const { t } = useTranslation();
   const timer = useSyncExternalStore(subscribeSleepTimer, getSleepTimer, getSleepTimer);
   const [now, setNow] = useState(Date.now);
@@ -30,6 +31,11 @@ export function SleepTimerButton({ compact = false }: { compact?: boolean }) {
       id: String(minutes), label: t("player.sleep_minutes", { minutes }), onClick: () => setSleepMinutes(minutes),
     })),
   ];
+  return { label, items, active };
+}
+
+export function SleepTimerButton({ compact = false }: { compact?: boolean }) {
+  const { label, items, active } = useSleepTimerMenu();
   return (
     <DropdownMenu theme="dark" side="top" trigger={
       <button type="button" aria-label={label} title={label}

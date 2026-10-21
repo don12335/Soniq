@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
 import { DownLine, More2Fill, HeartFill, HeartLine } from "@mingcute/react";
-import { MusicNote, Playlist, TextSquare, PlaybackSpeed } from "@solar-icons/react";
+import { ClockCircle, MusicNote, Playlist, TextSquare, PlaybackSpeed } from "@solar-icons/react";
 import { CoverImage, preloadCoverArt, useCoverSrc } from "@/features/covers";
 import {
   BraccatoLyricsView,
@@ -13,7 +13,7 @@ import {
   useSongMenuItems,
 } from "@/features/player";
 import { TimelineSlider } from "@/features/player/ui/TimelineSlider";
-import { CrossfadeButton, SleepTimerButton } from "@/features/player/ui/PlaybackExtras";
+import { CrossfadeButton, useSleepTimerMenu } from "@/features/player/ui/PlaybackExtras";
 import { useLyricsStore, LyricsProviderIsland, hasSyncedLyricsSources } from "@/features/lyrics";
 import { useIsTrackLiked, useLikeTrack, useUnlikeTrack } from "@/features/library/hooks";
 import { ArtistLink } from "@/features/artist";
@@ -92,6 +92,8 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
   const [drawerTab, setDrawerTab] = useState<"queue" | "lyrics">("queue");
   const [speedOpen, setSpeedOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sleepTimerOpen, setSleepTimerOpen] = useState(false);
+  const sleepTimer = useSleepTimerMenu();
 
   useEffect(() => {
     void setStatusBarTone("dark");
@@ -128,6 +130,15 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
     coverUrl,
     durationMs: player.durationMs,
   });
+  const moreItems = [
+    ...menuItems,
+    {
+      id: "sleep-timer",
+      label: sleepTimer.label,
+      icon: <ClockCircle size={22} />,
+      onClick: () => setSleepTimerOpen(true),
+    },
+  ];
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (info.offset.y > DISMISS_OFFSET || info.velocity.y > DISMISS_VELOCITY) onClose();
@@ -189,8 +200,7 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
             type="button"
             aria-label={t("common.more_options")}
             onClick={() => setMenuOpen(true)}
-            disabled={menuItems.length === 0}
-            className="-mr-[10px] inline-flex h-[44px] w-[44px] items-center justify-center border-none bg-transparent text-white/80 cursor-pointer disabled:opacity-30"
+            className="-mr-[10px] inline-flex h-[44px] w-[44px] items-center justify-center border-none bg-transparent text-white/80 cursor-pointer"
           >
             <More2Fill size={24} />
           </button>
@@ -273,7 +283,6 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
         </div>
 
         <div className="flex shrink-0 items-center justify-between px-[6px] pt-[14px]">
-          <SleepTimerButton compact />
           <button type="button" aria-label={t("player.speed")} onClick={() => setSpeedOpen(true)} className={bottomButton}>
             <PlaybackSpeed size={22} />
           </button>
@@ -308,7 +317,8 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
         </div>
       </BottomSheet>
 
-      <ActionSheet open={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} title={track?.title} theme="dark" />
+      <ActionSheet open={menuOpen} onClose={() => setMenuOpen(false)} items={moreItems} title={track?.title} theme="dark" />
+      <ActionSheet open={sleepTimerOpen} onClose={() => setSleepTimerOpen(false)} items={sleepTimer.items} title={t("player.sleep_timer")} theme="dark" />
     </motion.div>
   );
 }
