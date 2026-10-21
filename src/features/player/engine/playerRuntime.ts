@@ -9,6 +9,7 @@ import { pitchShifter } from "./pitchShifter";
 import { getCapabilities, toPlayableMediaUrl } from "@/shared/platform";
 import { resolvePlaybackStream, type PlaybackStream } from "./streamResolver";
 import { downloadAudioBytes } from "@/shared/media/innertube";
+import { consumeSleepAfterTrack, getSleepTimer } from "./sleepTimer";
 
 export class PlayerRuntime {
   private audio: HTMLAudioElement;
@@ -20,6 +21,11 @@ export class PlayerRuntime {
   private loadAbortController: AbortController | null = null;
   private isResetting = false;
   private fadeTimer: ReturnType<typeof setTimeout> | null = null;
+  private outgoingAudio: HTMLAudioElement | null = null;
+  private outgoingBlobUrl: string | null = null;
+  private outgoingFadeTimer: ReturnType<typeof setTimeout> | null = null;
+  private deviceSyncListener: (() => void) | null = null;
+  private crossfadeRequested = false;
   private stallStartTime: number | null = null;
   private loadStartTime = 0;
   private ttfbMs = 0;
@@ -32,6 +38,7 @@ export class PlayerRuntime {
   private currentSessionExpiresAt: number | null = null;
   private recoveryAttempts = 0;
   public onEnded?: () => void;
+  public onCrossfadeRequested?: () => boolean;
   public onError?: (info: { trackId: string; message: string }) => void;
 
   constructor() {
@@ -80,6 +87,11 @@ export class PlayerRuntime {
 
     this.setupDeviceChangeListener();
     this.setupMediaSession();
+    if (getCapabilities().mediaProxy) {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "visible") this.stopOutgoingAudio();
+      });
+    }
     log("green", "boot", "player runtime initialized");
   }
 
@@ -104,6 +116,7 @@ export class PlayerRuntime {
         else navigator.mediaDevices.removeEventListener("devicechange", onDeviceChange);
         listening = shouldListen;
       };
+      this.deviceSyncListener = syncListener;
       this.audio.addEventListener("playing", syncListener);
       this.audio.addEventListener("pause", syncListener);
       this.audio.addEventListener("ended", syncListener);
@@ -178,6 +191,16 @@ export class PlayerRuntime {
 
       const posMs = Math.round(audioEl.currentTime * 1000);
       const correctedDurationMs = this.iosCorrectedDurationMs(audioEl);
+      const state = usePlayerStore.getState();
+      const crossfadeSeconds = getCapabilities().mediaProxy ? Math.min(state.crossfadeSeconds, 1.5) : state.crossfadeSeconds;
+      const durationMs = correctedDurationMs ?? (Number.isFinite(audioEl.duration) ? audioEl.duration * 1000 : this.currentTrackDurationMs);
+      if (!this.crossfadeRequested && !getSleepTimer().afterTrack && state.status === "playing" && crossfadeSeconds > 0 &&
+          durationMs > crossfadeSeconds * 2_000 && posMs > 0 &&
+          durationMs - posMs <= crossfadeSeconds * 1_000 * Math.max(1, audioEl.playbackRate)) {
+        this.crossfadeRequested = true;
+        if (this.onCrossfadeRequested?.()) return;
+        this.crossfadeRequested = false;
+      }
       if (correctedDurationMs !== null && posMs >= correctedDurationMs + 750) {
         this.finishTrack(audioEl, "iOS catalog duration reached");
         return;
@@ -324,6 +347,10 @@ export class PlayerRuntime {
     log("cyan", "audio", `${reason} — skipping to next`);
     if (!audioEl.paused) audioEl.pause();
     this.onEnded?.();
+    if (consumeSleepAfterTrack()) {
+      usePlayerStore.getState().dispatch({ type: "PAUSE_REQUESTED" });
+      return;
+    }
     usePlayerStore.getState().dispatch({ type: "SKIP_NEXT", isAutoEnd: true });
   }
 
@@ -389,6 +416,80 @@ export class PlayerRuntime {
     }
   }
 
+  public canCrossfade(): boolean {
+    const state = usePlayerStore.getState();
+    return state.crossfadeSeconds > 0 && this.currentTrackId !== null && !this.audio.paused &&
+      !this.outgoingAudio && !pitchShifter.isAttached() &&
+      (!getCapabilities().mediaProxy || document.visibilityState === "visible");
+  }
+
+  private stopOutgoingAudio(): void {
+    if (this.outgoingFadeTimer !== null) clearTimeout(this.outgoingFadeTimer);
+    this.outgoingFadeTimer = null;
+    const outgoing = this.outgoingAudio;
+    this.outgoingAudio = null;
+    if (outgoing) {
+      outgoing.pause();
+      outgoing.removeAttribute("src");
+      outgoing.load();
+      outgoing.remove();
+    }
+    if (this.outgoingBlobUrl) URL.revokeObjectURL(this.outgoingBlobUrl);
+    this.outgoingBlobUrl = null;
+  }
+
+  private prepareCrossfade(): void {
+    const outgoing = this.audio;
+    const incoming = new Audio();
+    outgoing.id = "liner-audio-outgoing";
+    incoming.id = "liner-audio";
+    incoming.preload = "auto";
+    if (getCapabilities().crossOriginMedia) incoming.crossOrigin = "anonymous";
+    document.body.appendChild(incoming);
+    this.outgoingAudio = outgoing;
+    this.outgoingBlobUrl = this.activeBlobUrl;
+    this.activeBlobUrl = null;
+    this.audio = incoming;
+    (window as any).__liner_audio = incoming;
+    this.setupAudioListeners(incoming);
+    if (this.deviceSyncListener) {
+      for (const event of ["playing", "pause", "ended"]) incoming.addEventListener(event, this.deviceSyncListener);
+      this.deviceSyncListener();
+    }
+  }
+
+  private fadeOutgoingAudio(durationMs: number): void {
+    const outgoing = this.outgoingAudio;
+    if (!outgoing) return;
+    // iOS ignores HTMLMediaElement.volume. Keep a short overlap there, then stop the old stream.
+    const effectiveMs = getCapabilities().volumeControl ? durationMs : Math.min(durationMs, 1_500);
+    const start = performance.now();
+    const initialVolume = outgoing.volume;
+    const tick = () => {
+      if (outgoing !== this.outgoingAudio) return;
+      const progress = Math.min((performance.now() - start) / effectiveMs, 1);
+      if (getCapabilities().volumeControl) outgoing.volume = initialVolume * Math.cos(progress * Math.PI / 2);
+      if (progress < 1) this.outgoingFadeTimer = setTimeout(tick, 16);
+      else this.stopOutgoingAudio();
+    };
+    tick();
+  }
+
+  private finishTransition(mixing: boolean, crossfadeMs: number): void {
+    const outgoing = this.outgoingAudio;
+    const remainingMs = outgoing && Number.isFinite(outgoing.duration)
+      ? Math.max(0, (outgoing.duration - outgoing.currentTime) * 1_000)
+      : crossfadeMs;
+    const fadeMs = mixing && outgoing && !outgoing.paused && !outgoing.ended
+      ? Math.min(crossfadeMs, remainingMs) : 0;
+    this.fadeVolume(
+      usePlayerStore.getState().volume,
+      fadeMs > 0 && getCapabilities().volumeControl ? fadeMs : 180,
+    );
+    if (fadeMs > 0) this.fadeOutgoingAudio(fadeMs);
+    else this.stopOutgoingAudio();
+  }
+
   private fadeVolume(
     targetVolume: number,
     durationMs: number = 180,
@@ -445,6 +546,7 @@ export class PlayerRuntime {
   }
 
   public cancelPendingLoad(): void {
+    this.stopOutgoingAudio();
     this.loadEpoch += 1;
     this.loadAbortController?.abort();
     this.loadAbortController = null;
@@ -453,6 +555,7 @@ export class PlayerRuntime {
     this.currentTrackId = null;
     this.currentTrackDurationMs = 0;
     this.completedCurrentTrack = false;
+    this.crossfadeRequested = false;
     this.currentSessionExpiresAt = null;
     this.recoveryAttempts = 0;
     this.safeResetAudioElement();
@@ -528,8 +631,12 @@ export class PlayerRuntime {
     track: Track,
     startPositionMs: number = 0,
     bypassCache: boolean = false,
+    crossfadeMs: number = 0,
   ) {
     this.cancelFade();
+    const mixing = crossfadeMs > 0 && this.canCrossfade();
+    if (mixing) this.prepareCrossfade();
+    else this.stopOutgoingAudio();
     this.pendingStartPositionMs = startPositionMs;
     const epoch = ++this.loadEpoch;
 
@@ -537,7 +644,12 @@ export class PlayerRuntime {
       this.recoveryAttempts = 0;
     }
 
-    if (this.preloadingTrackId === track.id && this.preloadingPromise) {
+    if (mixing && this.preloadingTrackId === track.id) {
+      this.preloadAbortController?.abort();
+      this.preloadingTrackId = null;
+      this.preloadingPromise = null;
+      this.preloadAbortController = null;
+    } else if (this.preloadingTrackId === track.id && this.preloadingPromise) {
       await this.preloadingPromise;
     } else if (this.preloadingTrackId && this.preloadingTrackId !== track.id) {
       this.preloadAbortController?.abort();
@@ -561,6 +673,7 @@ export class PlayerRuntime {
     this.currentTrackId = track.id;
     this.currentTrackDurationMs = track.durationMs ?? 0;
     this.completedCurrentTrack = false;
+    this.crossfadeRequested = false;
     this.loggedDurationMismatch = false;
     this.loadStartTime = performance.now();
     this.updateMediaSessionMetadata(track);
@@ -633,7 +746,7 @@ export class PlayerRuntime {
 
         if (epoch === this.loadEpoch) {
           usePlayerStore.getState().setStatus("playing");
-          this.fadeVolume(usePlayerStore.getState().volume, 180);
+          this.finishTransition(mixing, crossfadeMs);
         }
         log(
           "green",
@@ -703,7 +816,7 @@ export class PlayerRuntime {
 
       if (epoch === this.loadEpoch) {
         usePlayerStore.getState().setStatus("playing");
-        this.fadeVolume(usePlayerStore.getState().volume, 180);
+        this.finishTransition(mixing, crossfadeMs);
         this.cacheAudioInBackground(track, stream, bgCacheController.signal);
       }
       log(
@@ -729,6 +842,7 @@ export class PlayerRuntime {
       }
 
       if (error instanceof DOMException && error.name === "NotAllowedError") {
+        this.stopOutgoingAudio();
         log("yellow", "playback", "autoplay blocked — waiting for user gesture");
         usePlayerStore.getState().setStatus("paused");
         return;
@@ -741,6 +855,7 @@ export class PlayerRuntime {
             ? error.message
             : "Playback failed to start.";
       console.error("[LoadAndPlayError]", track.id, error);
+      this.stopOutgoingAudio();
       log("red", "playback", `failed: ${message}`);
       usePlayerStore.getState().setStatus("error", message);
 
@@ -778,6 +893,7 @@ export class PlayerRuntime {
   }
 
   public pause() {
+    this.stopOutgoingAudio();
     const epoch = ++this.loadEpoch;
     this.loadAbortController?.abort();
     this.loadAbortController = null;
@@ -854,6 +970,7 @@ export class PlayerRuntime {
   }
 
   public seek(positionMs: number) {
+    this.stopOutgoingAudio();
     if (!this.audio.src || this.audio.src === window.location.href) return;
     try {
       if (this.audio.readyState >= 1) {

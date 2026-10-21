@@ -12,6 +12,7 @@ import ExplicitBadge from "@/shared/ui/ExplicitBadge";
 import { VolumePicker } from "./VolumePicker";
 import { TimelineSlider } from "./TimelineSlider";
 import { PlaybackControls } from "./PlaybackControls";
+import { CrossfadeButton, SleepTimerButton } from "./PlaybackExtras";
 import { getCapabilities } from "@/shared/platform";
 
 import { useTranslation } from "@/languages";
@@ -163,6 +164,11 @@ export function PlayerUiElements({
 
       {/* Primary Playback Controls */}
       <PlaybackControls />
+
+      <div className="flex items-center gap-2">
+        <SleepTimerButton />
+        <CrossfadeButton />
+      </div>
 
       {/* Volume (Compact smooth slider, size sm); iOS uses the hardware buttons */}
       {getCapabilities().volumeControl && <VolumePicker className="w-[180px]" size="sm" />}

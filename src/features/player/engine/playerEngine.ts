@@ -32,6 +32,7 @@ import { linerDb, type CachedLyricsRecord } from "@/shared/storage";
 import { showToast } from "@/shared/ui";
 import { createTranslatorSync, getStoredLocale } from "@/languages";
 import type { Track } from "@/shared/types";
+import { getCapabilities } from "@/shared/platform";
 
 const MAX_CONSECUTIVE_AUTO_SKIPS = 3;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -293,6 +294,14 @@ class PlayerEngine {
       playerRuntime.onEnded = () => {
         const isRepeatOne = usePlayerStore.getState().repeat === "one";
         this.telemetry.onTrackCompleted(isRepeatOne);
+      };
+      playerRuntime.onCrossfadeRequested = () => {
+        const state = usePlayerStore.getState();
+        const nextIndex = this.computeNextIndex(true);
+        if (nextIndex === null || nextIndex === state.currentIndex || !playerRuntime?.canCrossfade()) return false;
+        this.telemetry.onTrackCompleted(false);
+        void this.skipNext(true);
+        return true;
       };
       playerRuntime.onError = (info) => this.handlePlaybackError(info);
     }
@@ -633,7 +642,7 @@ class PlayerEngine {
     }
   }
 
-  public async skipNext(isAutoEnd: boolean = false): Promise<void> {
+  public async skipNext(isAutoEnd: boolean = false, allowMix: boolean = true): Promise<void> {
     const store = usePlayerStore.getState();
     const nextIndex = this.computeNextIndex(isAutoEnd);
 
@@ -675,7 +684,9 @@ class PlayerEngine {
       store.setStatus("loading", null);
 
       if (playerRuntime) {
-        void playerRuntime.loadAndPlay(nextTrack);
+        const mixMs = allowMix && nextIndex !== store.currentIndex && playerRuntime.canCrossfade()
+          ? (getCapabilities().mediaProxy ? Math.min(store.crossfadeSeconds, 1.5) : store.crossfadeSeconds) * 1_000 : 0;
+        void playerRuntime.loadAndPlay(nextTrack, 0, false, mixMs);
       }
       this.maybeExtendQueue(mySession, nextTrack.id, nextIndex, store.queue.length);
     }
@@ -982,7 +993,7 @@ class PlayerEngine {
     showToast(translate("player.track_unavailable_title"), "error", {
       description: track.artists ? `${track.title} — ${track.artists}` : track.title,
     });
-    void this.skipNext(false);
+    void this.skipNext(false, false);
   }
 
   private computeNextIndex(isAutoEnd: boolean = false): number | null {

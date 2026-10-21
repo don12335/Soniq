@@ -47,6 +47,7 @@ export interface QueueState {
 
 export interface SessionState {
   volume: number;
+  crossfadeSeconds: number;
   repeat: RepeatMode;
   shuffle: boolean;
   audioQuality: AudioQuality;
@@ -99,6 +100,7 @@ export interface PlayerStore extends PlayerState {
   setRepeat: (mode: RepeatMode) => void;
   setShuffle: (shuffle: boolean) => void;
   setVolume: (volume: number) => void;
+  setCrossfadeSeconds: (seconds: number) => void;
   setCurrentTrack: (track: Track | null, index: number) => void;
   setQueue: (queue: Track[]) => void;
   setPlaybackContext: (context: string | null) => void;
@@ -144,6 +146,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
       // SessionSlice
       volume: 1,
+      crossfadeSeconds: 0,
       repeat: "off",
       shuffle: false,
       audioQuality: "high",
@@ -172,6 +175,7 @@ export const usePlayerStore = create<PlayerStore>()(
       setRepeat: (repeat) => set({ repeat }),
       setShuffle: (shuffle) => set({ shuffle }),
       setVolume: (volume) => set({ volume }),
+      setCrossfadeSeconds: (seconds) => set({ crossfadeSeconds: Math.max(0, Math.min(10, seconds)) }),
       setCurrentTrack: (currentTrack, currentIndex) => {
         const prev = get().currentTrack;
         const isDifferent = prev?.id !== currentTrack?.id;
@@ -279,6 +283,9 @@ export const usePlayerStore = create<PlayerStore>()(
           if (typeof state.reverbLevel !== "number" || isNaN(state.reverbLevel)) {
             state.reverbLevel = 0.35;
           }
+          if (typeof state.crossfadeSeconds !== "number" || !Number.isFinite(state.crossfadeSeconds)) {
+            state.crossfadeSeconds = 0;
+          }
         }
       },
       partialize: (state) => ({
@@ -297,6 +304,7 @@ export const usePlayerStore = create<PlayerStore>()(
         repeat: state.repeat,
         shuffle: state.shuffle,
         volume: state.volume,
+        crossfadeSeconds: state.crossfadeSeconds,
         audioQuality: state.audioQuality,
         miniPlayerStyle: state.miniPlayerStyle,
         accentVariant: state.accentVariant,

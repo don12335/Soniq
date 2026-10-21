@@ -353,6 +353,16 @@
     "continue_as_guest": "不登入，直接使用"
   },
   "player": {
+    "sleep_timer": "睡眠計時器",
+    "sleep_off": "關閉計時器",
+    "sleep_after_track": "這首播完停止",
+    "sleep_minutes": "{minutes} 分鐘後停止",
+    "sleep_remaining": "剩餘 {minutes} 分鐘",
+    "crossfade": "切歌混音",
+    "crossfade_off": "關閉混音",
+    "crossfade_seconds": "混音 {seconds} 秒",
+    "crossfade_active": "混音 {seconds} 秒",
+    "crossfade_overlap": "重疊播放 {seconds} 秒",
     "repeat_off": "重複播放：關閉",
     "repeat_all": "重複播放：全部",
     "repeat_one": "重複播放：單曲",

@@ -9,6 +9,7 @@ const EMPTY_STATE: PlayerState = {
   positionMs: 0,
   durationMs: 0,
   volume: 1,
+  crossfadeSeconds: 0,
   repeat: "off",
   shuffle: false,
   error: null,

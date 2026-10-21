@@ -156,6 +156,69 @@ describe("PlayerRuntime iOS media duration", () => {
   });
 });
 
+describe("PlayerRuntime crossfade timing", () => {
+  it("requests the next song once when the configured overlap begins", () => {
+    const runtime = playerRuntime as unknown as {
+      audio: HTMLAudioElement;
+      currentTrackId: string | null;
+      currentTrackDurationMs: number;
+      crossfadeRequested: boolean;
+      onCrossfadeRequested?: () => boolean;
+    };
+    const audio = runtime.audio;
+    const previousCallback = runtime.onCrossfadeRequested;
+    const request = vi.fn(() => true);
+    runtime.currentTrackId = track.id;
+    runtime.currentTrackDurationMs = track.durationMs;
+    runtime.crossfadeRequested = false;
+    runtime.onCrossfadeRequested = request;
+    usePlayerStore.setState({ status: "playing", currentTrack: track, crossfadeSeconds: 5 });
+    Object.defineProperty(audio, "duration", { configurable: true, value: 100 });
+    Object.defineProperty(audio, "currentTime", { configurable: true, value: 95.2 });
+    try {
+      audio.dispatchEvent(new Event("timeupdate"));
+      audio.dispatchEvent(new Event("timeupdate"));
+      expect(request).toHaveBeenCalledTimes(1);
+    } finally {
+      runtime.currentTrackId = null;
+      runtime.currentTrackDurationMs = 0;
+      runtime.crossfadeRequested = false;
+      runtime.onCrossfadeRequested = previousCallback;
+      usePlayerStore.setState({ crossfadeSeconds: 0, status: "idle" });
+      Reflect.deleteProperty(audio, "duration");
+      Reflect.deleteProperty(audio, "currentTime");
+    }
+  });
+
+  it("keeps the outgoing audio playing while preparing a second element", () => {
+    const runtime = playerRuntime as unknown as {
+      audio: HTMLAudioElement;
+      outgoingAudio: HTMLAudioElement | null;
+      outgoingBlobUrl: string | null;
+      prepareCrossfade: () => void;
+    };
+    const outgoing = runtime.audio;
+    const oldId = outgoing.id;
+    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    vi.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(() => {});
+    try {
+      runtime.prepareCrossfade();
+      expect(runtime.audio).not.toBe(outgoing);
+      expect(runtime.audio.id).toBe("liner-audio");
+      expect(runtime.outgoingAudio).toBe(outgoing);
+      expect(pause).not.toHaveBeenCalled();
+    } finally {
+      runtime.audio.remove();
+      runtime.audio = outgoing;
+      runtime.outgoingAudio = null;
+      runtime.outgoingBlobUrl = null;
+      outgoing.id = oldId;
+      (window as any).__liner_audio = outgoing;
+      vi.restoreAllMocks();
+    }
+  });
+});
+
 describe("PlayerRuntime audio caching", () => {
   beforeEach(() => {
     if (!globalThis.URL.createObjectURL) {

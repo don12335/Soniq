@@ -13,6 +13,7 @@ import {
   useSongMenuItems,
 } from "@/features/player";
 import { TimelineSlider } from "@/features/player/ui/TimelineSlider";
+import { CrossfadeButton, SleepTimerButton } from "@/features/player/ui/PlaybackExtras";
 import { useLyricsStore, LyricsProviderIsland, hasSyncedLyricsSources } from "@/features/lyrics";
 import { useIsTrackLiked, useLikeTrack, useUnlikeTrack } from "@/features/library/hooks";
 import { ArtistLink } from "@/features/artist";
@@ -272,6 +273,7 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
         </div>
 
         <div className="flex shrink-0 items-center justify-between px-[6px] pt-[14px]">
+          <SleepTimerButton compact />
           <button type="button" aria-label={t("player.speed")} onClick={() => setSpeedOpen(true)} className={bottomButton}>
             <PlaybackSpeed size={22} />
           </button>
@@ -290,6 +292,7 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
           <button type="button" aria-label={t("player.queue") || "Queue"} onClick={() => setQueueOpen(true)} className={bottomButton}>
             <Playlist size={22} />
           </button>
+          <CrossfadeButton compact />
         </div>
       </div>
 

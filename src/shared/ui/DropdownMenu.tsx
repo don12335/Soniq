@@ -27,6 +27,7 @@ export interface DropdownMenuProps {
   position?: { x: number; y: number } | null;
   side?: "top" | "bottom";
   align?: "start" | "end";
+  theme?: "dark";
 }
 
 function useFixedStyle(
@@ -71,6 +72,7 @@ export default function DropdownMenu({
   position,
   side = "bottom",
   align = "start",
+  theme,
 }: DropdownMenuProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen ?? internalOpen;
@@ -125,7 +127,7 @@ export default function DropdownMenu({
   }, [open, setOpen, mobile]);
 
   const menuContent = mobile ? (
-    <ActionSheet open={open} onClose={() => setOpen(false)} items={items} />
+    <ActionSheet open={open} onClose={() => setOpen(false)} items={items} theme={theme} />
   ) : (
     <AnimatePresence>
       {open && (

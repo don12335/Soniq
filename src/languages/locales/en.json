@@ -353,6 +353,16 @@
     "continue_as_guest": "Continue without signing in"
   },
   "player": {
+    "sleep_timer": "Sleep timer",
+    "sleep_off": "Turn off timer",
+    "sleep_after_track": "Stop after this song",
+    "sleep_minutes": "Stop in {minutes} minutes",
+    "sleep_remaining": "{minutes} minutes left",
+    "crossfade": "Crossfade",
+    "crossfade_off": "Turn off crossfade",
+    "crossfade_seconds": "Crossfade {seconds} seconds",
+    "crossfade_active": "Crossfade {seconds} seconds",
+    "crossfade_overlap": "Overlap playback for {seconds} seconds",
     "repeat_off": "Repeat: off",
     "repeat_all": "Repeat: all",
     "repeat_one": "Repeat: track",
