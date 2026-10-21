@@ -16,6 +16,7 @@ import {
   CreatePlaylistModal,
 } from "@/features/library";
 import { setThemeStatusBarTone } from "@/shared/platform/native/statusBarTone";
+import { useCustomizationStore } from "@/features/settings/store/customizationStore";
 import { useTouchScrollClickGuard } from "@/shared/hooks/useTouchScrollClickGuard";
 import MobileTabBar from "./navigation/MobileTabBar";
 import MobileMiniPlayer from "./player/MobileMiniPlayer";
@@ -86,6 +87,10 @@ export default function MobileShell() {
   // wallpaper / gradient theme (ambient background), same as the desktop shell
   const shellBackground = useShellBackground();
   const { hasCustomBg, usesAmbient, mainStyle } = shellBackground;
+  const hasWallpaper = useCustomizationStore((state) => Boolean(state.backgroundImage));
+  const ambientEnabled = useCustomizationStore((state) => state.ambientEnabled);
+  const showGradient = resolvedTheme === "dark" && shellBackground.gradientThemeEnabled && !hasWallpaper;
+  const hasVisualBg = hasCustomBg || showGradient;
   useEffect(() => {
     setThemeStatusBarTone(resolvedTheme === "dark" ? "dark" : "light");
   }, [resolvedTheme]);
@@ -120,17 +125,23 @@ export default function MobileShell() {
 
   return (
     <div
-      data-custom-bg={hasCustomBg ? "true" : undefined}
-      data-ambient={usesAmbient ? "true" : undefined}
+      data-custom-bg={hasVisualBg ? "true" : undefined}
+      data-ambient={usesAmbient || (showGradient && ambientEnabled) ? "true" : undefined}
       className="relative flex h-full w-full flex-col overflow-hidden bg-bg-primary"
     >
-      <ShellBackground background={shellBackground} />
-      <div className={`relative shrink-0 ${hasCustomBg ? "" : "bg-bg-primary"}`} style={{ height: "var(--safe-top)" }} />
+      {showGradient ? (
+        <div className={`soniq-mobile-gradient absolute inset-0 pointer-events-none ${ambientEnabled ? "" : "opacity-60"}`} aria-hidden="true" />
+      ) : (
+        <ShellBackground background={shellBackground} />
+      )}
+      <div className={`relative shrink-0 ${hasVisualBg ? "" : "bg-bg-primary"}`} style={{ height: "var(--safe-top)" }} />
 
       <main
-        data-custom-bg={hasCustomBg ? "true" : undefined}
+        data-custom-bg={hasVisualBg ? "true" : undefined}
         className="relative min-h-0 flex-1"
-        style={{ ...(hasCustomBg ? { ...mainStyle, boxShadow: undefined } : {}), paddingBottom: bottomReserve }}
+        style={{ ...(showGradient
+          ? { background: "rgba(9, 10, 24, 0.34)" }
+          : hasCustomBg ? { ...mainStyle, boxShadow: undefined } : {}), paddingBottom: bottomReserve }}
       >
         <div ref={mainScrollRef} className={`h-full overflow-x-hidden overflow-y-auto ${isSearch ? "hidden" : ""}`}>
           <PageTransition>
@@ -151,7 +162,7 @@ export default function MobileShell() {
         </div>
       )}
 
-      <MobileTabBar translucent={hasCustomBg} />
+      <MobileTabBar translucent={hasVisualBg} />
 
       <AnimatePresence>
         {fullscreenOpen && hasCurrentTrack && <MobileNowPlaying key="now-playing" onClose={closeNowPlaying} />}
