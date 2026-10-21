@@ -2,7 +2,6 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { ClockCircle, Soundwave } from "@solar-icons/react";
 import DropdownMenu from "@/shared/ui/DropdownMenu";
 import { useTranslation } from "@/languages";
-import { getCapabilities } from "@/shared/platform";
 import { usePlayerStore } from "../store/playerStore";
 import {
   cancelSleepTimer, getSleepTimer, setSleepAfterTrack, setSleepMinutes, subscribeSleepTimer,
@@ -44,14 +43,12 @@ export function SleepTimerButton({ compact = false }: { compact?: boolean }) {
 
 export function CrossfadeButton({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
-  const ios = getCapabilities().mediaProxy;
   const seconds = usePlayerStore(state => state.crossfadeSeconds);
-  const effectiveSeconds = ios && seconds > 0 ? 1.5 : seconds;
   const setSeconds = usePlayerStore(state => state.setCrossfadeSeconds);
-  const label = seconds > 0 ? t(ios ? "player.crossfade_overlap" : "player.crossfade_active", { seconds: effectiveSeconds }) : t("player.crossfade");
-  const items = (ios ? [0, 1.5] : [0, 3, 5, 8]).map(value => ({
+  const label = seconds > 0 ? t("player.crossfade_active", { seconds }) : t("player.crossfade");
+  const items = [0, 3, 5, 8].map(value => ({
     id: String(value),
-    label: `${effectiveSeconds === value ? "✓ " : ""}${value === 0 ? t("player.crossfade_off") : t(ios ? "player.crossfade_overlap" : "player.crossfade_seconds", { seconds: value })}`,
+    label: `${seconds === value ? "✓ " : ""}${value === 0 ? t("player.crossfade_off") : t("player.crossfade_seconds", { seconds: value })}`,
     onClick: () => setSeconds(value),
   }));
   return (

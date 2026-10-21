@@ -10,6 +10,7 @@ import { getCapabilities, toPlayableMediaUrl } from "@/shared/platform";
 import { resolvePlaybackStream, type PlaybackStream } from "./streamResolver";
 import { downloadAudioBytes } from "@/shared/media/innertube";
 import { consumeSleepAfterTrack, getSleepTimer } from "./sleepTimer";
+import { CrossfadeMixer } from "./crossfadeMixer";
 
 export class PlayerRuntime {
   private audio: HTMLAudioElement;
@@ -24,6 +25,9 @@ export class PlayerRuntime {
   private outgoingAudio: HTMLAudioElement | null = null;
   private outgoingBlobUrl: string | null = null;
   private outgoingFadeTimer: ReturnType<typeof setTimeout> | null = null;
+  private outgoingDurationMs = 0;
+  private readonly crossfadeMixer = new CrossfadeMixer();
+  private handoffAudio: HTMLAudioElement | null = null;
   private deviceSyncListener: (() => void) | null = null;
   private crossfadeRequested = false;
   private stallStartTime: number | null = null;
@@ -69,8 +73,12 @@ export class PlayerRuntime {
       if (state.volume !== prevState.volume) {
         this.cancelFade();
         if (!this.audio.paused) {
-          this.audio.volume = state.volume;
+          if (this.crossfadeMixer.has(this.audio)) this.crossfadeMixer.setLevel(this.audio, state.volume);
+          else this.audio.volume = state.volume;
         }
+      }
+      if (state.crossfadeSeconds > 0 && state.crossfadeSeconds !== prevState.crossfadeSeconds && getCapabilities().mediaProxy) {
+        this.crossfadeMixer.prime();
       }
       if (
         state.playbackRate !== prevState.playbackRate ||
@@ -89,7 +97,16 @@ export class PlayerRuntime {
     this.setupMediaSession();
     if (getCapabilities().mediaProxy) {
       document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState !== "visible") this.stopOutgoingAudio();
+        if (document.visibilityState !== "visible") {
+          const mixed = this.audio;
+          if (this.crossfadeMixer.has(mixed) && !mixed.paused) {
+            void this.handoffToPlainAudio().then(() => {
+              if (this.audio !== mixed) this.stopOutgoingAudio();
+            });
+          } else {
+            this.stopOutgoingAudio();
+          }
+        }
       });
     }
     log("green", "boot", "player runtime initialized");
@@ -192,7 +209,7 @@ export class PlayerRuntime {
       const posMs = Math.round(audioEl.currentTime * 1000);
       const correctedDurationMs = this.iosCorrectedDurationMs(audioEl);
       const state = usePlayerStore.getState();
-      const crossfadeSeconds = getCapabilities().mediaProxy ? Math.min(state.crossfadeSeconds, 1.5) : state.crossfadeSeconds;
+      const crossfadeSeconds = state.crossfadeSeconds;
       const durationMs = correctedDurationMs ?? (Number.isFinite(audioEl.duration) ? audioEl.duration * 1000 : this.currentTrackDurationMs);
       if (!this.crossfadeRequested && !getSleepTimer().afterTrack && state.status === "playing" && crossfadeSeconds > 0 &&
           durationMs > crossfadeSeconds * 2_000 && posMs > 0 &&
@@ -314,6 +331,15 @@ export class PlayerRuntime {
 
       const store = usePlayerStore.getState();
       const currentTrack = store.currentTrack;
+      if (getCapabilities().mediaProxy && audioEl.crossOrigin === "anonymous" &&
+          currentTrack?.id === this.currentTrackId &&
+          this.recoveryAttempts < 1) {
+        this.recoveryAttempts++;
+        store.setCrossfadeSeconds(0);
+        log("yellow", "playback", "crossfade media access failed — retrying normal playback");
+        void this.loadAndPlay(currentTrack, store.positionMs, true);
+        return;
+      }
       if (
         currentTrack &&
         currentTrack.id === this.currentTrackId &&
@@ -420,7 +446,9 @@ export class PlayerRuntime {
     const state = usePlayerStore.getState();
     return state.crossfadeSeconds > 0 && this.currentTrackId !== null && !this.audio.paused &&
       !this.outgoingAudio && !pitchShifter.isAttached() &&
-      (!getCapabilities().mediaProxy || document.visibilityState === "visible");
+      (!getCapabilities().mediaProxy || (document.visibilityState === "visible" &&
+        this.crossfadeMixer.ready && this.audio.crossOrigin === "anonymous" &&
+        !this.crossfadeMixer.has(this.audio)));
   }
 
   private stopOutgoingAudio(): void {
@@ -433,14 +461,20 @@ export class PlayerRuntime {
       outgoing.removeAttribute("src");
       outgoing.load();
       outgoing.remove();
+      this.crossfadeMixer.release(outgoing);
     }
     if (this.outgoingBlobUrl) URL.revokeObjectURL(this.outgoingBlobUrl);
     this.outgoingBlobUrl = null;
+    this.outgoingDurationMs = 0;
   }
 
-  private prepareCrossfade(): void {
+  private prepareCrossfade(): boolean {
     const outgoing = this.audio;
     const incoming = new Audio();
+    if (getCapabilities().mediaProxy) {
+      incoming.crossOrigin = "anonymous";
+      if (!this.crossfadeMixer.attach(incoming, 0)) return false;
+    }
     outgoing.id = "liner-audio-outgoing";
     incoming.id = "liner-audio";
     incoming.preload = "auto";
@@ -448,6 +482,7 @@ export class PlayerRuntime {
     document.body.appendChild(incoming);
     this.outgoingAudio = outgoing;
     this.outgoingBlobUrl = this.activeBlobUrl;
+    this.outgoingDurationMs = this.currentTrackDurationMs;
     this.activeBlobUrl = null;
     this.audio = incoming;
     (window as any).__liner_audio = incoming;
@@ -456,19 +491,33 @@ export class PlayerRuntime {
       for (const event of ["playing", "pause", "ended"]) incoming.addEventListener(event, this.deviceSyncListener);
       this.deviceSyncListener();
     }
+    return true;
   }
 
   private fadeOutgoingAudio(durationMs: number): void {
     const outgoing = this.outgoingAudio;
     if (!outgoing) return;
-    // iOS ignores HTMLMediaElement.volume. Keep a short overlap there, then stop the old stream.
-    const effectiveMs = getCapabilities().volumeControl ? durationMs : Math.min(durationMs, 1_500);
+    if (getCapabilities().mediaProxy) {
+      if ((!this.crossfadeMixer.has(outgoing) && !this.crossfadeMixer.attach(outgoing, 1)) ||
+          !this.crossfadeMixer.blend(outgoing, this.audio, durationMs)) {
+        this.crossfadeMixer.setLevel(this.audio, 1);
+        this.stopOutgoingAudio();
+        void this.handoffToPlainAudio();
+        return;
+      }
+      this.outgoingFadeTimer = setTimeout(() => {
+        this.stopOutgoingAudio();
+        void this.handoffToPlainAudio();
+      }, durationMs);
+      return;
+    }
+    const effectiveMs = durationMs;
     const start = performance.now();
     const initialVolume = outgoing.volume;
     const tick = () => {
       if (outgoing !== this.outgoingAudio) return;
       const progress = Math.min((performance.now() - start) / effectiveMs, 1);
-      if (getCapabilities().volumeControl) outgoing.volume = initialVolume * Math.cos(progress * Math.PI / 2);
+      outgoing.volume = initialVolume * Math.cos(progress * Math.PI / 2);
       if (progress < 1) this.outgoingFadeTimer = setTimeout(tick, 16);
       else this.stopOutgoingAudio();
     };
@@ -477,17 +526,109 @@ export class PlayerRuntime {
 
   private finishTransition(mixing: boolean, crossfadeMs: number): void {
     const outgoing = this.outgoingAudio;
-    const remainingMs = outgoing && Number.isFinite(outgoing.duration)
+    const remainingMs = outgoing && getCapabilities().mediaProxy && this.outgoingDurationMs > 0
+      ? Math.max(0, this.outgoingDurationMs - outgoing.currentTime * 1_000)
+      : outgoing && Number.isFinite(outgoing.duration)
       ? Math.max(0, (outgoing.duration - outgoing.currentTime) * 1_000)
       : crossfadeMs;
     const fadeMs = mixing && outgoing && !outgoing.paused && !outgoing.ended
       ? Math.min(crossfadeMs, remainingMs) : 0;
-    this.fadeVolume(
-      usePlayerStore.getState().volume,
-      fadeMs > 0 && getCapabilities().volumeControl ? fadeMs : 180,
-    );
+    if (!mixing || !getCapabilities().mediaProxy) {
+      this.fadeVolume(usePlayerStore.getState().volume, fadeMs > 0 ? fadeMs : 180);
+    }
     if (fadeMs > 0) this.fadeOutgoingAudio(fadeMs);
-    else this.stopOutgoingAudio();
+    else {
+      if (mixing) this.crossfadeMixer.setLevel(this.audio, 1);
+      this.stopOutgoingAudio();
+      if (mixing && getCapabilities().mediaProxy) void this.handoffToPlainAudio();
+    }
+  }
+
+  private installCurrentAudio(audio: HTMLAudioElement): void {
+    audio.id = "liner-audio";
+    this.audio = audio;
+    (window as any).__liner_audio = audio;
+    this.setupAudioListeners(audio);
+    if (this.deviceSyncListener) {
+      for (const event of ["playing", "pause", "ended"]) audio.addEventListener(event, this.deviceSyncListener);
+      this.deviceSyncListener();
+    }
+  }
+
+  private replaceMixedCurrentAudio(): void {
+    const mixed = this.audio;
+    if (!this.crossfadeMixer.has(mixed)) return;
+    const replacement = new Audio();
+    replacement.preload = "auto";
+    if (getCapabilities().mediaProxy && usePlayerStore.getState().crossfadeSeconds > 0) {
+      replacement.crossOrigin = "anonymous";
+    }
+    document.body.appendChild(replacement);
+    mixed.id = "liner-audio-retired";
+    this.installCurrentAudio(replacement);
+    mixed.pause();
+    mixed.removeAttribute("src");
+    mixed.load();
+    mixed.remove();
+    this.crossfadeMixer.release(mixed);
+  }
+
+  /** Return to an ordinary media element so playback remains independent of Web Audio. */
+  private async handoffToPlainAudio(): Promise<void> {
+    const mixed = this.audio;
+    if (!this.crossfadeMixer.has(mixed) || this.handoffAudio) return;
+    const source = mixed.currentSrc || mixed.src;
+    if (!source) return;
+    const epoch = this.loadEpoch;
+    const replacement = new Audio();
+    this.handoffAudio = replacement;
+    replacement.id = "liner-audio-handoff";
+    replacement.preload = "auto";
+    replacement.crossOrigin = "anonymous";
+    replacement.playbackRate = mixed.playbackRate;
+    replacement.preservesPitch = mixed.preservesPitch;
+    document.body.appendChild(replacement);
+    try {
+      replacement.src = source;
+      replacement.load();
+      if (replacement.readyState < 3) {
+        await new Promise<void>(resolve => {
+          const done = () => {
+            clearTimeout(timer);
+            replacement.removeEventListener("canplay", done);
+            replacement.removeEventListener("error", done);
+            resolve();
+          };
+          const timer = setTimeout(done, 3_000);
+          replacement.addEventListener("canplay", done);
+          replacement.addEventListener("error", done);
+        });
+      }
+      if (epoch !== this.loadEpoch || mixed !== this.audio || replacement.error) return;
+      replacement.currentTime = mixed.currentTime;
+      await replacement.play();
+      if (epoch !== this.loadEpoch || mixed !== this.audio) return;
+      mixed.id = "liner-audio-retired";
+      this.installCurrentAudio(replacement);
+      this.crossfadeMixer.setLevel(mixed, 0);
+      mixed.pause();
+      mixed.removeAttribute("src");
+      mixed.load();
+      mixed.remove();
+      this.crossfadeMixer.release(mixed);
+      log("green", "playback", "crossfade returned to native media playback");
+    } catch (error) {
+      log("yellow", "playback", `crossfade handoff delayed: ${String(error)}`);
+      if (mixed === this.audio && mixed.paused) void mixed.play().catch(() => {});
+    } finally {
+      if (this.handoffAudio === replacement) this.handoffAudio = null;
+      if (this.audio !== replacement) {
+        replacement.pause();
+        replacement.removeAttribute("src");
+        replacement.load();
+        replacement.remove();
+      }
+    }
   }
 
   private fadeVolume(
@@ -496,6 +637,11 @@ export class PlayerRuntime {
     onComplete?: () => void,
   ): void {
     this.cancelFade();
+    if (this.crossfadeMixer.has(this.audio)) {
+      this.crossfadeMixer.setLevel(this.audio, targetVolume);
+      onComplete?.();
+      return;
+    }
     const startVolume = this.audio.volume;
     const diff = targetVolume - startVolume;
     if (Math.abs(diff) < 0.001 || durationMs <= 0) {
@@ -547,6 +693,7 @@ export class PlayerRuntime {
 
   public cancelPendingLoad(): void {
     this.stopOutgoingAudio();
+    this.replaceMixedCurrentAudio();
     this.loadEpoch += 1;
     this.loadAbortController?.abort();
     this.loadAbortController = null;
@@ -634,9 +781,13 @@ export class PlayerRuntime {
     crossfadeMs: number = 0,
   ) {
     this.cancelFade();
-    const mixing = crossfadeMs > 0 && this.canCrossfade();
-    if (mixing) this.prepareCrossfade();
-    else this.stopOutgoingAudio();
+    if (getCapabilities().mediaProxy && usePlayerStore.getState().crossfadeSeconds > 0) this.crossfadeMixer.prime();
+    let mixing = crossfadeMs > 0 && this.canCrossfade();
+    if (mixing) mixing = this.prepareCrossfade();
+    if (!mixing) {
+      this.stopOutgoingAudio();
+      this.replaceMixedCurrentAudio();
+    }
     this.pendingStartPositionMs = startPositionMs;
     const epoch = ++this.loadEpoch;
 
@@ -704,6 +855,10 @@ export class PlayerRuntime {
         void linerDb.putTrack(track);
         const blobUrl = URL.createObjectURL(cachedAudio.blob);
         this.activeBlobUrl = blobUrl;
+        if (getCapabilities().mediaProxy) {
+          if (store.crossfadeSeconds > 0) this.audio.crossOrigin = "anonymous";
+          else this.audio.removeAttribute("crossorigin");
+        }
         this.audio.src = blobUrl;
         this.audio.volume = 0;
         this.audio.load();
@@ -774,6 +929,10 @@ export class PlayerRuntime {
       }
       const url = stream.blob ? URL.createObjectURL(stream.blob) : toPlayableMediaUrl(stream.url);
       if (stream.blob) this.activeBlobUrl = url;
+      if (getCapabilities().mediaProxy) {
+        if (store.crossfadeSeconds > 0) this.audio.crossOrigin = "anonymous";
+        else this.audio.removeAttribute("crossorigin");
+      }
       this.audio.src = url;
       this.audio.volume = 0;
       this.audio.load();
@@ -907,6 +1066,7 @@ export class PlayerRuntime {
   }
 
   public resume() {
+    if (getCapabilities().mediaProxy && usePlayerStore.getState().crossfadeSeconds > 0) this.crossfadeMixer.prime();
     const epoch = ++this.loadEpoch;
     this.loadAbortController?.abort();
     this.loadAbortController = null;
@@ -944,6 +1104,7 @@ export class PlayerRuntime {
         .then(() => {
           if (epoch !== this.loadEpoch) return;
           this.fadeVolume(targetVolume, 180);
+          if (this.crossfadeMixer.has(this.audio)) void this.handoffToPlainAudio();
         })
         .catch((error) => {
           if (epoch !== this.loadEpoch) return;
@@ -966,11 +1127,16 @@ export class PlayerRuntime {
         });
     } else {
       this.fadeVolume(targetVolume, 180);
+      if (this.crossfadeMixer.has(this.audio)) void this.handoffToPlainAudio();
     }
   }
 
   public seek(positionMs: number) {
     this.stopOutgoingAudio();
+    if (this.crossfadeMixer.has(this.audio)) {
+      this.crossfadeMixer.setLevel(this.audio, 1);
+      if (!this.audio.paused) void this.handoffToPlainAudio();
+    }
     if (!this.audio.src || this.audio.src === window.location.href) return;
     try {
       if (this.audio.readyState >= 1) {

@@ -32,7 +32,6 @@ import { linerDb, type CachedLyricsRecord } from "@/shared/storage";
 import { showToast } from "@/shared/ui";
 import { createTranslatorSync, getStoredLocale } from "@/languages";
 import type { Track } from "@/shared/types";
-import { getCapabilities } from "@/shared/platform";
 
 const MAX_CONSECUTIVE_AUTO_SKIPS = 3;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -685,7 +684,7 @@ class PlayerEngine {
 
       if (playerRuntime) {
         const mixMs = allowMix && nextIndex !== store.currentIndex && playerRuntime.canCrossfade()
-          ? (getCapabilities().mediaProxy ? Math.min(store.crossfadeSeconds, 1.5) : store.crossfadeSeconds) * 1_000 : 0;
+          ? store.crossfadeSeconds * 1_000 : 0;
         void playerRuntime.loadAndPlay(nextTrack, 0, false, mixMs);
       }
       this.maybeExtendQueue(mySession, nextTrack.id, nextIndex, store.queue.length);
