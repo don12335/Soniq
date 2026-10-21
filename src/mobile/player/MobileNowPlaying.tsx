@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
 import { DownLine, More2Fill, HeartFill, HeartLine } from "@mingcute/react";
-import { ClockCircle, MusicNote, Playlist, TextSquare, PlaybackSpeed } from "@solar-icons/react";
+import { MusicNote, Playlist, TextSquare, PlaybackSpeed } from "@solar-icons/react";
+import { LuClock } from "react-icons/lu";
 import { CoverImage, preloadCoverArt, useCoverSrc } from "@/features/covers";
 import {
   BraccatoLyricsView,
@@ -135,7 +136,7 @@ export default function MobileNowPlaying({ onClose }: MobileNowPlayingProps) {
     {
       id: "sleep-timer",
       label: sleepTimer.label,
-      icon: <ClockCircle size={22} />,
+      icon: <LuClock size={15} />,
       onClick: () => setSleepTimerOpen(true),
     },
   ];
