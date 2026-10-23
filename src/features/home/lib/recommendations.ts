@@ -9,9 +9,9 @@ export interface RecommendationRow {
 }
 
 const CACHE_KEY = "soniq_home_recommendations_v4";
-// New listening events trigger updates. This is only a fallback for a long
-// session with no new plays, so the radio can still discover fresh songs.
-export const MIX_STALE_MS = 30 * 60 * 1000;
+// Both recommendation rows use the same cadence on desktop and mobile.
+// New listens influence the next refresh without replacing a row immediately.
+export const RECOMMENDATION_REFRESH_MS = 3 * 60 * 60 * 1000;
 const MAX_MIX_SEEDS = 4;
 const TRACKS_PER_ROW = 15;
 const MIN_TRACKS_PER_ROW = 5;
@@ -21,6 +21,7 @@ interface RecommendationCache {
   mixUpdatedAt?: number;
   historyVersion?: string;
   because?: RecommendationRow;
+  becauseUpdatedAt?: number;
 }
 
 function readCache(): RecommendationCache {
@@ -54,9 +55,17 @@ export function recommendationHistoryVersion(): string {
 
 export function isMixRefreshDue(now = Date.now()): boolean {
   const cache = readCache();
-  return !cache.mix || typeof cache.mixUpdatedAt !== "number" ||
-    cache.historyVersion !== recommendationHistoryVersion() ||
-    now - cache.mixUpdatedAt < 0 || now - cache.mixUpdatedAt >= MIX_STALE_MS;
+  return isRowRefreshDue(cache.mix, cache.mixUpdatedAt, now);
+}
+
+export function isBecauseRefreshDue(now = Date.now()): boolean {
+  const cache = readCache();
+  return isRowRefreshDue(cache.because, cache.becauseUpdatedAt, now);
+}
+
+function isRowRefreshDue(row: RecommendationRow | undefined, updatedAt: number | undefined, now: number): boolean {
+  return !row || typeof updatedAt !== "number" ||
+    now - updatedAt < 0 || now - updatedAt >= RECOMMENDATION_REFRESH_MS;
 }
 
 export function clearRecommendationCache(): void {
@@ -230,7 +239,7 @@ export async function buildBecauseRecommendation(
     const fresh = radio.filter((track) => track.id && !freshExclusions.has(track.id)).slice(0, TRACKS_PER_ROW);
     if (fresh.length >= MIN_TRACKS_PER_ROW) {
       const because = { seed, tracks: fresh };
-      writeCache({ because });
+      writeCache({ because, becauseUpdatedAt: Date.now() });
       return because;
     }
   }
@@ -240,7 +249,7 @@ export async function buildBecauseRecommendation(
       const tracks = radios[i].filter((track) => track.id && !used.has(track.id)).slice(0, TRACKS_PER_ROW);
       if (tracks.length < MIN_TRACKS_PER_ROW) continue;
       const because = { seed: ordered[i], tracks };
-      writeCache({ because });
+      writeCache({ because, becauseUpdatedAt: Date.now() });
       return because;
     }
   }

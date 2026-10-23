@@ -11,6 +11,7 @@ import {
 import {
   buildBecauseRecommendation,
   buildMixedRecommendations,
+  isBecauseRefreshDue,
   isMixRefreshDue,
   recommendationHistoryVersion,
   readCachedRecommendations,
@@ -92,6 +93,7 @@ let lastMixAttemptAt = 0;
 let lastMixAttemptVersion = "";
 let lastBecauseAttemptAt = 0;
 let lastBecauseAttemptVersion = "";
+const RECOMMENDATION_RETRY_MS = 5 * 60 * 1000;
 
 export function useRecommendations() {
   const [rows, setRows] = useState<RecommendationRow[]>(() => readCachedRecommendations() ?? []);
@@ -112,13 +114,15 @@ export function useRecommendations() {
     };
 
     const loadBecause = (mix?: RecommendationRow) => {
-      if (rowsRef.current.some((row) => row.seed)) return;
+      if (!isBecauseRefreshDue()) return;
       const version = recommendationHistoryVersion();
-      if (!becauseRequest && version === lastBecauseAttemptVersion && Date.now() - lastBecauseAttemptAt < 60_000) return;
+      const previous = rowsRef.current.find((row) => row.seed);
+      if (!becauseRequest && Date.now() - lastBecauseAttemptAt < RECOMMENDATION_RETRY_MS &&
+        (previous || version === lastBecauseAttemptVersion)) return;
       if (!becauseRequest) {
         lastBecauseAttemptAt = Date.now();
         lastBecauseAttemptVersion = version;
-        becauseRequest = buildBecauseRecommendation(mix ?? rowsRef.current.find((row) => !row.seed))
+        becauseRequest = buildBecauseRecommendation(mix ?? rowsRef.current.find((row) => !row.seed), previous)
           .finally(() => { becauseRequest = null; });
       }
       becauseRequest.then((next) => {
@@ -130,7 +134,11 @@ export function useRecommendations() {
     const updateMix = () => {
       if (!isMixRefreshDue()) return;
       const version = recommendationHistoryVersion();
-      if (!mixRequest && version === lastMixAttemptVersion && Date.now() - lastMixAttemptAt < 30_000) return;
+      if (!mixRequest && Date.now() - lastMixAttemptAt < RECOMMENDATION_RETRY_MS &&
+        (rowsRef.current.some((row) => !row.seed) || version === lastMixAttemptVersion)) {
+        loadBecause();
+        return;
+      }
       if (!mixRequest) {
         lastMixAttemptAt = Date.now();
         lastMixAttemptVersion = version;
@@ -141,13 +149,14 @@ export function useRecommendations() {
       }
       mixRequest.then((next) => {
         if (next) updateRows(next);
+        if (active) loadBecause(next ?? undefined);
         if (recommendationHistoryVersion() !== version) window.setTimeout(updateMix, 800);
-      }).catch(() => {});
+      }).catch(() => { if (active) loadBecause(); });
     };
 
     const tick = () => {
       if (isMixRefreshDue()) updateMix();
-      loadBecause();
+      else loadBecause();
     };
     tick();
     let historyTimer: number | undefined;
@@ -155,8 +164,10 @@ export function useRecommendations() {
       window.clearTimeout(historyTimer);
       historyTimer = window.setTimeout(tick, 800);
     });
-    const timer = window.setInterval(tick, 30_000);
+    const timer = window.setInterval(tick, 60_000);
     window.addEventListener("focus", tick);
+    const onVisible = () => { if (!document.hidden) tick(); };
+    document.addEventListener("visibilitychange", onVisible);
     const fromCloud = () => {
       const cached = readCachedRecommendations();
       if (cached) { rowsRef.current = cached; setRows(cached); }
@@ -169,6 +180,7 @@ export function useRecommendations() {
       window.clearTimeout(historyTimer);
       window.clearInterval(timer);
       window.removeEventListener("focus", tick);
+      document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("soniq:recommendations-changed", fromCloud);
     };
   }, []);
@@ -178,6 +190,8 @@ export function useRecommendations() {
     const mix = rowsRef.current.find((row) => !row.seed);
     const previous = rowsRef.current.find((row) => row.seed);
     setIsRefreshingBecause(true);
+    lastBecauseAttemptAt = Date.now();
+    lastBecauseAttemptVersion = recommendationHistoryVersion();
     becauseRequest = buildBecauseRecommendation(mix, previous).finally(() => {
       becauseRequest = null;
     });

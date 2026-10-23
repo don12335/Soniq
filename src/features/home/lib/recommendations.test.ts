@@ -4,21 +4,23 @@ import { api } from "@/shared/api";
 import { recordPlayback } from "@/shared/api/localHistory";
 import type { Track } from "@/shared/types";
 import {
-  buildBecauseRecommendation, buildMixedRecommendations, isMixRefreshDue,
-  MIX_STALE_MS, pickSeeds, readCachedRecommendations,
+  buildBecauseRecommendation, buildMixedRecommendations, isBecauseRefreshDue, isMixRefreshDue,
+  RECOMMENDATION_REFRESH_MS, pickSeeds, readCachedRecommendations,
 } from "./recommendations";
 
 const vid = (n: number) => `video${String(n).padStart(6, "0")}`;
 const track = (id: string): Track => ({ id, title: id, artists: "A", coverUrl: "", durationMs: 1, playCount: 0 });
 const fixed = () => 0;
+let playbackCount = 0;
 const listen = (id: string) => recordPlayback({
-  playbackSessionId: id, listeningSessionId: "l", trackId: id,
+  playbackSessionId: `${id}-${++playbackCount}`, listeningSessionId: "l", trackId: id,
   trackSnapshot: { id, title: id, artists: [{ id: "a", name: "A" }], durationMs: 100_000 },
   playedDurationMs: 100_000, completionRate: 1, completed: true,
 });
 
 describe("recommendations", () => {
   beforeEach(() => {
+    playbackCount = 0;
     localStorage.clear();
     vi.spyOn(api, "listLikedTracks").mockResolvedValue({ items: [], nextCursor: null });
   });
@@ -34,7 +36,7 @@ describe("recommendations", () => {
     expect(pickSeeds([track("sc:invalid")], [])).toEqual([]);
   });
 
-  it("marks the mix due when listening changes without letting one seed dominate", async () => {
+  it("keeps the mix for three hours even when new songs are played", async () => {
     listen(vid(9));
     const radio = vi.spyOn(api, "getRadio").mockImplementation(async (id) => ({
       items: Array.from({ length: 20 }, (_, i) => ({
@@ -45,13 +47,13 @@ describe("recommendations", () => {
     const first = await buildMixedRecommendations();
     expect(first?.tracks).toHaveLength(15);
     const updatedAt = JSON.parse(localStorage.getItem("soniq_home_recommendations_v4")!).mixUpdatedAt as number;
-    expect(isMixRefreshDue(updatedAt + MIX_STALE_MS - 1)).toBe(false);
-    expect(isMixRefreshDue(updatedAt + MIX_STALE_MS + 1)).toBe(true);
+    expect(isMixRefreshDue(updatedAt + RECOMMENDATION_REFRESH_MS - 1)).toBe(false);
+    expect(isMixRefreshDue(updatedAt + RECOMMENDATION_REFRESH_MS)).toBe(true);
 
     listen(vid(1));
     listen(vid(2));
     listen(vid(3));
-    expect(isMixRefreshDue()).toBe(true);
+    expect(isMixRefreshDue(updatedAt + 60_000)).toBe(false);
     radio.mockClear();
     const next = await buildMixedRecommendations(first ?? undefined);
     expect(new Set(radio.mock.calls.map(([id]) => id))).toEqual(new Set([vid(3), vid(2), vid(1), vid(9)]));
@@ -113,12 +115,25 @@ describe("recommendations", () => {
     expect(mix).not.toBeNull();
     const firstBecause = await buildBecauseRecommendation(mix ?? undefined, undefined, fixed);
     expect(firstBecause?.seed).toBeDefined();
+    const updatedAt = JSON.parse(localStorage.getItem("soniq_home_recommendations_v4")!).becauseUpdatedAt as number;
+    listen(vid(3));
+    expect(isBecauseRefreshDue(updatedAt + 60_000)).toBe(false);
+    expect(isBecauseRefreshDue(updatedAt + RECOMMENDATION_REFRESH_MS - 1)).toBe(false);
+    expect(isBecauseRefreshDue(updatedAt + RECOMMENDATION_REFRESH_MS)).toBe(true);
     const refreshed = await buildBecauseRecommendation(mix ?? undefined, firstBecause ?? undefined, fixed);
     expect(refreshed?.seed?.id).not.toBe(firstBecause?.seed?.id);
     const cached = readCachedRecommendations();
     expect(cached).toHaveLength(2);
     expect(cached?.[0].tracks).toEqual(mix?.tracks);
     expect(cached?.[1].seed?.id).toBe(refreshed?.seed?.id);
+  });
+
+  it("refreshes an older cached because row without a timestamp once", async () => {
+    localStorage.setItem("soniq_home_recommendations_v4", JSON.stringify({
+      because: { seed: track(vid(1)), tracks: [track(vid(2))] },
+    }));
+    expect(readCachedRecommendations()).toHaveLength(1);
+    expect(isBecauseRefreshDue()).toBe(true);
   });
 
   it("keeps one because-you-listened row even with a small radio catalog", async () => {
