@@ -4,7 +4,9 @@ import { readBaseline, writeBaseline } from "./baselineDb";
 
 const SESSION_KEY = "soniq_cloud_session_v1";
 const SERVER_KEY = "soniq_cloud_server_v1";
-const DEFAULT_SERVER = "https://129.146.222.51";
+const DEFAULT_SERVER = "https://129.153.211.65";
+// Earlier default servers. Older builds may have saved one, so map it to the current default.
+const RETIRED_SERVERS = new Set(["https://129.146.222.51"]);
 const CHANGE_EVENT = "soniq:cloud-state";
 const message = (zh: string, en: string) => document.documentElement.lang.startsWith("zh") ? zh : en;
 type Session = { token: string; account: { id: string; email: string | null } };
@@ -26,7 +28,10 @@ export const onCloudState = (callback: () => void) => {
   window.addEventListener(CHANGE_EVENT, callback);
   return () => window.removeEventListener(CHANGE_EVENT, callback);
 };
-export const getCloudServer = () => localStorage.getItem(SERVER_KEY) ?? DEFAULT_SERVER;
+export const getCloudServer = () => {
+  const saved = localStorage.getItem(SERVER_KEY);
+  return saved && !RETIRED_SERVERS.has(saved) ? saved : DEFAULT_SERVER;
+};
 export function setCloudServer(value: string) {
   const url = new URL(value.trim());
   if (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)))

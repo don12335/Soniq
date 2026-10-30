@@ -36,7 +36,8 @@ describe("localHistory", () => {
   it("ranks tracks by how much they were listened to", () => {
     recordPlayback(play("once"));
     recordPlayback(play("often"));
-    recordPlayback(play("often"));
+    // a second play is a separate playback session (the same session is recorded once)
+    recordPlayback(play("often", { playbackSessionId: "s-often-2" }));
     recordPlayback(play("partial", { completed: false, playedDurationMs: 60_000, completionRate: 0.3 }));
     expect(topTracks(2).map((s) => s.track.id)).toEqual(["often", "once"]);
     expect(topTracks()[0].plays).toBe(2);
